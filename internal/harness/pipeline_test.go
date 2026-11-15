@@ -198,3 +198,31 @@ func TestPlannerStageCapForcesFinalAnswer(t *testing.T) {
 	}
 	_ = fmt.Sprint()
 }
+
+// TestRoleToolsNarrowsBuiltinRoles: built-in roles differ in capability, not
+// only in instructions; custom and role-less sub-agents keep the full set.
+func TestRoleToolsNarrowsBuiltinRoles(t *testing.T) {
+	var all []harness.Tool
+	for _, name := range []string{"read_file", "list_files", "search_text", "git_diff", "read_skill", "apply_patch", "exec", "delegate"} {
+		all = append(all, staticTool{name: name})
+	}
+	names := func(role string) string {
+		var kept []string
+		for _, tool := range harness.RoleTools(role, all) {
+			kept = append(kept, tool.Spec().Name)
+		}
+		return strings.Join(kept, ",")
+	}
+	want := map[string]string{
+		"planner":    "read_file,list_files,search_text,git_diff,read_skill,exec",
+		" Reviewer ": "read_file,list_files,search_text,git_diff,read_skill",
+		"developer":  "read_file,list_files,search_text,git_diff,read_skill,apply_patch,exec",
+		"security":   "read_file,list_files,search_text,git_diff,read_skill,apply_patch,exec,delegate",
+		"":           "read_file,list_files,search_text,git_diff,read_skill,apply_patch,exec,delegate",
+	}
+	for role, expected := range want {
+		if got := names(role); got != expected {
+			t.Errorf("RoleTools(%q) = %s, want %s", role, got, expected)
+		}
+	}
+}

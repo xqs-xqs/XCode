@@ -1,0 +1,12 @@
+{
+  "goal": "Fix Mean in stats.go so that it returns the exact arithmetic mean.",
+  "acceptance": [
+    "go test ./... passes",
+    "Mean still returns ErrNoValues for an empty slice",
+    "Median and the test file are unchanged"
+  ],
+  "review": true,
+  "verify_commands": [
+    { "name": "go test", "command": ["go", "test", "./..."] }
+  ]
+}

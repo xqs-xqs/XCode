@@ -72,7 +72,7 @@ func (d *Delegate) SetEventSink(sink EventSink) {
 func (d *Delegate) Spec() ToolSpec {
 	return ToolSpec{
 		Name:        "delegate",
-		Description: "Spawn a subagent with fresh context. Returns result text. Use max_steps (default 12, max 16) to allow enough iterations for multi-file tasks. Roles: planner/developer/reviewer or custom from .xcode/skills/",
+		Description: "Spawn a subagent with fresh context. Returns result text. Use max_steps (default 12, max 16) to allow enough iterations for multi-file tasks. Roles: planner (reads and runs commands, cannot edit), developer (edits and runs commands), reviewer (read-only), or custom from .xcode/skills/",
 		InputSchema: map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -201,6 +201,41 @@ var builtinRoles = map[string]string{
 	"planner":   "你是规划专家。分解任务、列出步骤与风险，不修改任何文件。",
 	"developer": "你是实现专家。按任务最小化修改代码，运行测试验证。",
 	"reviewer":  "你是独立审查者。只看代码本身，不看开发过程。输出 pass 或 issues-found。",
+}
+
+// readOnlyToolNames are the tools that cannot change the workspace.
+var readOnlyToolNames = map[string]bool{
+	"read_file": true, "list_files": true, "search_text": true, "git_diff": true, "read_skill": true,
+}
+
+// RoleTools narrows a tool set to what a built-in role may use, so roles
+// differ in capability and not only in instructions:
+//
+//	planner   - read-only tools plus exec (to reproduce a failure); no edit tool
+//	developer - every tool except delegate (sub-agents do not spawn sub-agents)
+//	reviewer  - read-only tools
+//
+// Custom roles and role-less sub-agents keep the full set.
+func RoleTools(role string, tools []Tool) []Tool {
+	role = strings.ToLower(strings.TrimSpace(role))
+	allowed := func(name string) bool {
+		switch role {
+		case "planner":
+			return readOnlyToolNames[name] || name == "exec"
+		case "developer":
+			return name != "delegate"
+		case "reviewer":
+			return readOnlyToolNames[name]
+		}
+		return true
+	}
+	kept := make([]Tool, 0, len(tools))
+	for _, tool := range tools {
+		if allowed(tool.Spec().Name) {
+			kept = append(kept, tool)
+		}
+	}
+	return kept
 }
 
 // SubagentSink 把子智能体的全部事件桥接到父的 sink，附 agent_id 标签。

@@ -15,7 +15,9 @@ Orchestrator (main agent)
   └─ delegate → reviewer   independent check, returns pass / issues
 ```
 
-**Role separation.** The three built-in roles each carry their own instructions: the planner only decomposes and never edits; the developer edits code and runs verification; the reviewer only looks at the code and the final state of the workspace. Roles can be customized via `.xcode/skills/<role>.md`.
+**Role separation.** The three built-in roles each carry their own instructions: the planner only decomposes and never edits; the developer edits code and runs verification; the reviewer only looks at the code and the final state of the workspace. The separation is enforced by each role's tool set, not only by its instructions: the planner gets the read-only tools plus `exec` and has no edit tool, the developer gets everything except `delegate`, and the reviewer gets the read-only tools only. Roles can be customized via `.xcode/skills/<role>.md`; custom roles keep the full tool set.
+
+A step-by-step example with a small buggy package is in [demo/README.md](demo/README.md).
 
 **Context isolation.** Every delegate creates a brand-new subagent: its own conversation history, its own step budget, no inherited parent context, and only a summary of conclusions is returned. This is deliberate — the reviewer cannot see the developer's reasoning, which is what makes its judgment genuinely independent.
 

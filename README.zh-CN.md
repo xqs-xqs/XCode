@@ -15,7 +15,9 @@ XCode 是一个用 Go 写的多智能体编码工具。你给它一个任务（�
   └─ delegate → reviewer   独立检查，给 pass / issues
 ```
 
-**角色分工。** 三个内置角色各有自己的指令：planner 只拆解不动手；developer 负责改代码和跑验证；reviewer 只看代码和工作区的最终状态。角色可以用 `.xcode/skills/<角色名>.md` 自定义。
+**角色分工。** 三个内置角色各有自己的指令：planner 只拆解不动手；developer 负责改代码和跑验证；reviewer 只看代码和工作区的最终状态。分工由各角色的工具集强制，而不只靠指令：planner 只有只读工具加 `exec`，没有改文件的工具；developer 拥有除 `delegate` 之外的全部工具；reviewer 只有只读工具。角色可以用 `.xcode/skills/<角色名>.md` 自定义，自定义角色保留完整工具集。
+
+带一个小 bug 的逐步演示示例见 [demo/README.md](demo/README.md)。
 
 **上下文隔离。** 每次 delegate 都会创建一个全新的子智能体：独立的对话历史、独立的轮数预算，不继承父级上下文，做完只回传一份结论摘要。这是刻意设计——reviewer 看不到 developer 的推理过程，才能做出真正独立的判断。
 

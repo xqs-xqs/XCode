@@ -408,6 +408,7 @@ func runCLI(args []string) (runErr error) {
 	// factory 使用延迟引用打破 Agent↔Executor 循环依赖。
 	// 子智能体用独立 Executor（自有锁），共享策略/快照/Registry，避免 delegate 持锁导致死锁。
 	var registryRef *harness.Registry
+	var toolsRef []harness.Tool
 	var engineRef *policy.Engine
 	var checkpointsRef *checkpoint.Store
 	var approver executor.Approver
@@ -431,7 +432,17 @@ func runCLI(args []string) (runErr error) {
 			if isReviewer && *strictReviewerMaxSteps > 0 {
 				maxSteps = *strictReviewerMaxSteps
 			}
-			subExecutor, err := executor.New(registryRef, engineRef, approver, checkpointsRef, subSink)
+			// Built-in roles get their own narrowed registry: a tool the role
+			// may not use is neither advertised nor executable.
+			subRegistry := registryRef
+			if narrowed := harness.RoleTools(role, toolsRef); len(narrowed) < len(toolsRef) {
+				roleRegistry, err := harness.NewRegistry(narrowed...)
+				if err != nil {
+					return "", err
+				}
+				subRegistry = roleRegistry
+			}
+			subExecutor, err := executor.New(subRegistry, engineRef, approver, checkpointsRef, subSink)
 			if err != nil {
 				return "", err
 			}
@@ -550,6 +561,7 @@ func runCLI(args []string) (runErr error) {
 		return err
 	}
 	registryRef = registry
+	toolsRef = allTools
 	engineRef = engine
 	checkpointsRef = checkpoints
 
