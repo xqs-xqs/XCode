@@ -800,8 +800,45 @@ func runCLI(args []string) (runErr error) {
 	return nil
 }
 
+// subagentRoles remembers each sub-agent's role from its agent.spawned event,
+// so later progress lines can say which agent is acting.
+var subagentRoles sync.Map
+
+// agentLabel renders a sub-agent as "sub-1 planner" (or "sub-1" without a role).
+func agentLabel(agentID string) string {
+	if role, ok := subagentRoles.Load(agentID); ok && role.(string) != "" {
+		return agentID + " " + role.(string)
+	}
+	return agentID
+}
+
 // writeCompactEvent 把一条运行事件渲染成单行极简进度；流式增量等高频事件不输出。
+// 子智能体的生成与返回单独成行，其内部进度缩进并标注"编号 角色"，
+// 让终端上能直接看出谁在做什么。
 func writeCompactEvent(writer io.Writer, event harness.Event) {
+	switch event.Kind {
+	case harness.AgentSpawned:
+		role, task, _ := strings.Cut(strings.TrimPrefix(event.Data, "role="), " prompt=")
+		subagentRoles.Store(event.AgentID, role)
+		fmt.Fprintf(writer, "[agent] %s spawned: %s\n", agentLabel(event.AgentID), compactLine(task, 100))
+		return
+	case harness.AgentCompleted:
+		fmt.Fprintf(writer, "[agent] %s returned: %s\n", agentLabel(event.AgentID), compactLine(event.Data, 200))
+		return
+	}
+	if event.AgentID == "" {
+		writeCompactLine(writer, event)
+		return
+	}
+	var line strings.Builder
+	writeCompactLine(&line, event)
+	if line.Len() > 0 {
+		fmt.Fprintf(writer, "  [%s] %s", agentLabel(event.AgentID), line.String())
+	}
+}
+
+// writeCompactLine renders one event as a progress line without agent attribution.
+func writeCompactLine(writer io.Writer, event harness.Event) {
 	switch event.Kind {
 	case harness.ToolStarted:
 		fmt.Fprintf(writer, "[step %d] %s %s\n", event.Step, event.Tool, compactLine(event.Data, 120))
@@ -839,6 +876,8 @@ func writeCompactEvent(writer io.Writer, event harness.Event) {
 		fmt.Fprintf(writer, "[gate] blocked: %s\n", compactLine(event.Data, 160))
 	case harness.CompletionGatePassed:
 		fmt.Fprintf(writer, "[gate] passed fingerprint=%s\n", compactLine(event.Data, 16))
+	case harness.ReviewVerdict:
+		fmt.Fprintf(writer, "[review] verdict: %s\n", compactLine(event.Data, 160))
 	}
 }
 
