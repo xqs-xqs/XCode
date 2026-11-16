@@ -297,7 +297,7 @@ def write_report(run_dir: Path, report: dict, context: dict) -> None:
 
 
 def select_tasks(args) -> list[dict]:
-    tasks = lite_lib.iter_tasks()
+    tasks = lite_lib.iter_tasks(Path(args.tasks_dir)) if args.tasks_dir else lite_lib.iter_tasks()
     if args.tasks:
         wanted = {name.strip() for name in args.tasks.split(",") if name.strip()}
         known = {task["id"] for task in tasks}
@@ -319,8 +319,9 @@ def main() -> int:
     parser.add_argument("--cells", default="single",
                         help="comma-separated cells: single,single-review,pipeline")
     parser.add_argument("--tasks", default="", help="comma-separated task ids (default: all)")
+    parser.add_argument("--tasks-dir", default="", help="task directory root (default: evals/lite/tasks)")
     parser.add_argument("--language", default="", choices=["", "python", "go"])
-    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard", "audit"])
+    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard", "audit", "swe"])
     parser.add_argument("--limit", type=int, default=0, help="run only the first N selected tasks")
     parser.add_argument("--run-id", default="", help="output directory name (default: timestamp)")
     parser.add_argument("--label", default="", help="recorded in the report for identification")

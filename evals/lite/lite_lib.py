@@ -43,7 +43,7 @@ RUN_ROOT = ROOT / ".eval" / "lite"
 
 SCHEMA_VERSION = 1
 LANGUAGES = ("python", "go")
-KINDS = ("algo", "module", "bugfix", "hard", "audit")
+KINDS = ("algo", "module", "bugfix", "hard", "audit", "swe")
 MAX_RECORDED_OUTPUT = 8000
 
 
@@ -130,8 +130,9 @@ def write_contract(meta: dict, path: Path, python_exe: str, review: bool = False
 
 
 def policy_for(meta: dict) -> Path:
-    """Return the scoped allowlist shipped for this task's language."""
-    return POLICIES_DIR / f"{meta['language']}.json"
+    """Return the scoped allowlist for this task: its own, or its language's."""
+    name = meta.get("policy") or f"{meta['language']}.json"
+    return POLICIES_DIR / Path(name).name
 
 
 # --------------------------------------------------------------------------- #
