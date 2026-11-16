@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-wrap",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `wrap(\"a b c\", 3)` returns [\"a\", \"b\", \"c\"] instead of [\"a b\", \"c\"]. Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `wrap(text, width)` in solution.py and return a list of lines. Paragraphs are separated by one or more blank lines (a blank line is empty or holds only whitespace) and are wrapped independently; in the output, consecutive paragraphs are separated by exactly one empty string, and there is no empty string before the first or after the last paragraph. Inside a paragraph, words are maximal runs of non-whitespace characters; all whitespace, single newlines included, only separates words. Lines are filled greedily: a word joins the current line when the line, one space and the word together fit within `width`, otherwise it starts a new line. A word longer than `width` always starts on a new line and is cut into chunks of exactly `width` characters, the last chunk possibly shorter; the next word may join that last chunk if it fits. No line has leading or trailing spaces. Text without any word gives []. Raise ValueError when `width` is less than 1.",
+  "acceptance": [
+    "a word that exactly fits stays on the line",
+    "paragraphs are separated by exactly one empty string",
+    "the word after an over-long word may join its last chunk"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

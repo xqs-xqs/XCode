@@ -320,7 +320,7 @@ def main() -> int:
                         help="comma-separated cells: single,single-review,pipeline")
     parser.add_argument("--tasks", default="", help="comma-separated task ids (default: all)")
     parser.add_argument("--language", default="", choices=["", "python", "go"])
-    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard"])
+    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard", "audit"])
     parser.add_argument("--limit", type=int, default=0, help="run only the first N selected tasks")
     parser.add_argument("--run-id", default="", help="output directory name (default: timestamp)")
     parser.add_argument("--label", default="", help="recorded in the report for identification")

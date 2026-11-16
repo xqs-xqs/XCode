@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import families_audit  # noqa: E402
 import families_go  # noqa: E402
 import families_hard  # noqa: E402
 import families_python  # noqa: E402
@@ -76,7 +77,7 @@ def main() -> int:
     parser.add_argument("--only", default="", help="generate only tasks whose id contains this text")
     args = parser.parse_args()
 
-    produced = families_python.tasks() + families_go.tasks() + families_hard.tasks()
+    produced = families_python.tasks() + families_go.tasks() + families_hard.tasks() + families_audit.tasks()
     seen = set()
     for task in produced:
         if task["id"] in seen:

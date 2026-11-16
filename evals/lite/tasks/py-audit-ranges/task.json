@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-ranges",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `compress([1, 2, 4, 5, 6])` returns \"1-2,4-6\" instead of \"1,2,4-6\". Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `compress(numbers)` and `expand(text)` in solution.py. `compress` takes any iterable of ints, removes duplicates, sorts ascending and writes the numbers as comma-separated items with no spaces: a run of three or more consecutive integers becomes `first-last`, shorter runs are written as single numbers. Negative numbers keep their sign, so the run -3, -2, -1 is written `-3--1`. An empty input gives the empty string. `expand` is the inverse and returns a sorted list without duplicates. It accepts the same syntax and is more lenient: spaces are allowed around commas and around the range dash, a range may have any length of at least one (`4-4` is just 4 and `1-2` is fine), and items may come in any order and may overlap. An empty or whitespace-only string expands to []. `expand` raises ValueError for a descending range such as `5-3`, for an empty item (as in `1,,2` or a leading or trailing comma) and for any item that is not an integer or a range of two integers.",
+  "acceptance": [
+    "only runs of three or more are hyphenated",
+    "duplicates are removed",
+    "expand validates every item"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

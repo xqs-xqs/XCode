@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-roman",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `from_roman(\"IIII\")` returns 4 instead of raising ValueError. Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `to_roman(number)` and `from_roman(text)` in solution.py. `to_roman` converts an int from 1 to 3999 into its standard upper-case Roman numeral (subtractive forms IV, IX, XL, XC, CD, CM). It raises ValueError outside that range and TypeError when the argument is not an int (bool is rejected too). `from_roman` accepts exactly the strings `to_roman` can produce and returns the int; every other string raises ValueError, including the empty string, lower case, surrounding spaces and non-standard forms such as IIII, VV, IL, IC, XM, IXI or MMMM.",
+  "acceptance": [
+    "only standard numerals are accepted",
+    "range is 1 to 3999",
+    "bool is not an int here"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

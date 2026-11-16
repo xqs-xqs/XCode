@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-template",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `render(\"{v|upper|lower}\", {\"v\": \"Ab\"})` returns \"AB\" instead of \"ab\". Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `render(template, values)` in solution.py and return a string. A placeholder `{name}` is replaced by str() of `values[name]`. A dotted name such as `{user.name}` walks nested dicts. `{{` and `}}` produce a literal `{` and `}`. Filters follow the name after a `|` and are applied left to right to the string value: `upper`, `lower`, `title` (str.title) and `trim` (strip surrounding whitespace), as in `{name|trim|upper}`. Whitespace around the name and around filter names is ignored (`{ name | upper }`). Each segment of a name consists of letters, digits and underscores and must not be empty. Raise KeyError when a name segment is missing or when a value that must be walked into is not a dict. Raise ValueError for an unknown filter, an empty filter, an empty placeholder, a malformed name, a `{` without a closing `}`, and a lone `}` outside a placeholder. Text outside placeholders is copied unchanged.",
+  "acceptance": [
+    "filters apply left to right",
+    "a lone closing brace is an error",
+    "walking into a non-dict raises KeyError",
+    "whitespace inside a placeholder is ignored"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

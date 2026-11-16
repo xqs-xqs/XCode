@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-allocate",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `allocate(100, [1, 1, 1])` returns [33, 33, 34] instead of [34, 33, 33]. Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `allocate(total, weights)` in solution.py: split the integer `total` (an amount in cents) across the weights so that the parts are integers summing exactly to `total`. Each part starts as the floor of its exact proportional share of the absolute value of `total`; the cents left over are handed out one each to the parts with the largest fractional remainders, ties going to the earlier position. For a negative total, allocate the absolute value and negate every part. Weights are non-negative ints and a zero weight always receives 0. The result is a list in the order of the weights and must be exact for arbitrarily large integers. Raise ValueError if `weights` is empty, any weight is negative, or all weights are zero; raise TypeError if `total` or any weight is not an int (bool is rejected too).",
+  "acceptance": [
+    "parts sum exactly to the total",
+    "leftover cents go to the largest remainders, earlier position first",
+    "negative totals mirror the positive allocation",
+    "invalid weights raise the documented errors"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}
