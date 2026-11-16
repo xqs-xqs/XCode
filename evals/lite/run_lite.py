@@ -180,6 +180,8 @@ def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environme
             "--provider-retries", "0",
             "--timeout", f"{args.timeout_sec}s",
             "--reviewer-provider", args.reviewer_provider,
+            "--thinking", args.thinking,
+            "--reasoning-effort", args.reasoning_effort,
         ]
         if orchestrate:
             command += ["--orchestrate", orchestrate]
@@ -318,7 +320,7 @@ def main() -> int:
                         help="comma-separated cells: single,single-review,pipeline")
     parser.add_argument("--tasks", default="", help="comma-separated task ids (default: all)")
     parser.add_argument("--language", default="", choices=["", "python", "go"])
-    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix"])
+    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard"])
     parser.add_argument("--limit", type=int, default=0, help="run only the first N selected tasks")
     parser.add_argument("--run-id", default="", help="output directory name (default: timestamp)")
     parser.add_argument("--label", default="", help="recorded in the report for identification")
@@ -337,6 +339,9 @@ def main() -> int:
     parser.add_argument("--timeout-sec", type=int, default=300)
     parser.add_argument("--context-strategy", default="bounded")
     parser.add_argument("--context-budget", type=int, default=6000)
+    parser.add_argument("--thinking", default="enabled", choices=["enabled", "disabled"],
+                        help="developer thinking mode, applied to every cell alike")
+    parser.add_argument("--reasoning-effort", default="high", choices=["low", "high", "max"])
     parser.add_argument("--skip-preflight", action="store_true")
     parser.add_argument("--demo", action="store_true",
                         help="offline plumbing check with the demo model (expects every task to fail)")
@@ -421,6 +426,8 @@ def main() -> int:
         "timeout_sec": args.timeout_sec,
         "context_strategy": args.context_strategy,
         "context_budget": args.context_budget,
+        "thinking": args.thinking,
+        "reasoning_effort": args.reasoning_effort,
     }
     report = summarize(run_dir, cells)
     write_report(run_dir, report, context)

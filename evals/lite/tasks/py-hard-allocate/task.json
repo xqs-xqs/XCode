@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-allocate",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `allocate(total, weights)` in solution.py: split the integer `total` (an amount in cents) across the weights so that the parts are integers summing exactly to `total`. Each part starts as the floor of its exact proportional share of the absolute value of `total`; the cents left over are handed out one each to the parts with the largest fractional remainders, ties going to the earlier position. For a negative total, allocate the absolute value and negate every part. Weights are non-negative ints and a zero weight always receives 0. The result is a list in the order of the weights and must be exact for arbitrarily large integers. Raise ValueError if `weights` is empty, any weight is negative, or all weights are zero; raise TypeError if `total` or any weight is not an int (bool is rejected too).",
+  "acceptance": [
+    "parts sum exactly to the total",
+    "leftover cents go to the largest remainders, earlier position first",
+    "negative totals mirror the positive allocation",
+    "exact for arbitrarily large integers"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

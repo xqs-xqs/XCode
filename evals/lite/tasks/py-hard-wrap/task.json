@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-wrap",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `wrap(text, width)` in solution.py and return a list of lines. Paragraphs are separated by one or more blank lines (a blank line is empty or holds only whitespace) and are wrapped independently; in the output, consecutive paragraphs are separated by exactly one empty string, and there is no empty string before the first or after the last paragraph. Inside a paragraph, words are maximal runs of non-whitespace characters; all whitespace, single newlines included, only separates words. Lines are filled greedily: a word joins the current line when the line, one space and the word together fit within `width`, otherwise it starts a new line. A word longer than `width` always starts on a new line and is cut into chunks of exactly `width` characters, the last chunk possibly shorter; the next word may join that last chunk if it fits. No line has leading or trailing spaces. Text without any word gives []. Raise ValueError when `width` is less than 1.",
+  "acceptance": [
+    "paragraphs are separated by exactly one empty string",
+    "over-long words are cut into width-sized chunks",
+    "no line has leading or trailing spaces"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

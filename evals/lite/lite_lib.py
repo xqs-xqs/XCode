@@ -43,7 +43,7 @@ RUN_ROOT = ROOT / ".eval" / "lite"
 
 SCHEMA_VERSION = 1
 LANGUAGES = ("python", "go")
-KINDS = ("algo", "module", "bugfix")
+KINDS = ("algo", "module", "bugfix", "hard")
 MAX_RECORDED_OUTPUT = 8000
 
 

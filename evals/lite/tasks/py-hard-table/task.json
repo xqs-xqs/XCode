@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-table",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `format_table(headers, rows)` in solution.py and return one string. `headers` is a list of strings and `rows` a list of lists. Cell text: None becomes the empty string; True and False become `yes` and `no`; an int is written in decimal; a float is written with exactly two decimals; a str is used as it is. A column is as wide as its longest cell text or header. Ints and floats are right-aligned in their column; everything else, headers and booleans included, is left-aligned. The output has the header line, then a line made of one run of dashes per column as wide as that column, then one line per row. Columns are joined by two spaces, trailing spaces are removed from every line, and lines are joined by a newline with no newline at the end. A row with fewer cells than headers is padded with None; a row with more cells raises ValueError, and so does an empty `headers` list.",
+  "acceptance": [
+    "numbers align right, everything else left",
+    "floats have two decimals",
+    "no trailing spaces on any line"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

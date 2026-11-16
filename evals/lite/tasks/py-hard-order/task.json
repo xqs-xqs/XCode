@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-order",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `install_order(packages)` in solution.py. `packages` maps each package name to the list of names it depends on. Return a list containing every package exactly once such that each package appears after all of its dependencies. Whenever several packages are ready at the same time, the alphabetically smallest goes first, so the result is unique. Duplicate entries in a dependency list are harmless. A dependency that is not a key of `packages` raises KeyError. A dependency cycle raises ValueError whose message is exactly the cycle written as names joined by ` -> `, starting and ending with the alphabetically smallest name in the cycle and following the dependency direction (`a -> b` means a depends on b); a package that depends on itself gives `a -> a`. The input dict must not be modified.",
+  "acceptance": [
+    "alphabetically smallest ready package first",
+    "cycle message starts at the smallest name in the cycle",
+    "the input is not modified"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

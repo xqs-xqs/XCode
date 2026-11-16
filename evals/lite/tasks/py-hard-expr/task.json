@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-expr",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `evaluate(text)` in solution.py: evaluate an integer arithmetic expression and return an int. Tokens are non-negative decimal integer literals, the binary operators + - * // % **, unary minus, parentheses, and optional spaces between tokens; a space is not allowed inside a number or inside the two-character operators // and **. Precedence from lowest to highest: + and -; then *, // and %; then unary minus; then **. Binary operators of the same level are left-associative except **, which is right-associative. ** binds tighter than a unary minus on its left, so -2**2 is -4, while its exponent may itself start with a unary minus. // and % follow Python's floor semantics for negative operands. Raise ZeroDivisionError for // or % by zero, ValueError for a negative exponent, and ValueError for every syntax error: empty input, an unknown character, unbalanced parentheses, a missing operand, a single /, a unary plus, or two numbers in a row. Do not call eval or exec.",
+  "acceptance": [
+    "-2**2 is -4 and ** is right-associative",
+    "floor semantics for // and %",
+    "every listed syntax error raises ValueError",
+    "eval and exec are not called"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

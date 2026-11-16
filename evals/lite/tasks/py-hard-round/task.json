@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-round",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `round_decimal(text, places)` in solution.py: round a decimal number given as a string to `places` digits after the point using round-half-to-even, exactly, for inputs of any length (the result must not depend on binary floating point). Input syntax: an optional `-`, one or more digits, and optionally a `.` followed by one or more digits. Output: the same syntax with exactly `places` fraction digits (no point at all when `places` is 0), no leading zeros other than a single zero before the point, and no minus sign when the rounded value is zero. `places` is an int of at least 0; raise ValueError when it is negative. Raise ValueError for malformed input such as the empty string, `+1`, `.5`, `5.`, `1e3`, `1,5` or anything with spaces.",
+  "acceptance": [
+    "ties go to the even digit",
+    "exact for inputs of any length",
+    "zero is written without a minus sign"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}
