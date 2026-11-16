@@ -118,18 +118,36 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+# A cell name selects the collaboration topology. Without this mapping every
+# cell ran the same command and differed only in its directory name.
+CELL_SETTINGS = {
+    "single": ("single", False),
+    "single-review": ("single-review", True),
+    "pipeline": ("pipeline", True),
+}
+
+
+def cell_settings(cell: str, args) -> tuple[str, bool]:
+    """Return (orchestrate, review) for a cell; explicit flags still win."""
+    orchestrate, review = CELL_SETTINGS.get(cell, ("", False))
+    return args.orchestrate or orchestrate, args.review or review
+
+
 def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environment: dict) -> dict:
     """Run one task in one cell and grade it; return the recorded outcome."""
     task_dir = run_dir / cell / task["id"]
     task_dir.mkdir(parents=True, exist_ok=True)
     grade_path = task_dir / "grade.json"
+    orchestrate, review = cell_settings(cell, args)
 
     prompt_file = task_dir / "prompt.txt"
     prompt_file.write_text(task["prompt"] + "\n", encoding="utf-8")
-    contract = lite_lib.write_contract(task, task_dir / "contract.json", args.python_exe, review=args.review)
+    contract = lite_lib.write_contract(task, task_dir / "contract.json", args.python_exe, review=review)
     record = {
         "id": task["id"],
         "cell": cell,
+        "orchestrate": orchestrate,
+        "review": review,
         "language": task["language"],
         "kind": task["kind"],
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -163,9 +181,9 @@ def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environme
             "--timeout", f"{args.timeout_sec}s",
             "--reviewer-provider", args.reviewer_provider,
         ]
-        if args.orchestrate:
-            command += ["--orchestrate", args.orchestrate]
-        if args.review:
+        if orchestrate:
+            command += ["--orchestrate", orchestrate]
+        if review:
             command += ["--strict-reviewer-max-steps", str(args.strict_reviewer_max_steps)]
 
         started = time.time()
@@ -356,7 +374,7 @@ def main() -> int:
         reviewer_provider = args.reviewer_provider or reviewer_slot
         if not args.skip_preflight:
             preflight(developer_env, "developer")
-            if args.review or args.orchestrate in ("single-review", "pipeline"):
+            if any(cell_settings(cell.strip(), args)[1] for cell in args.cells.split(",")):
                 preflight(reviewer_env, "reviewer")
     # run_task reads the resolved provider names off args.
     args.provider = provider
