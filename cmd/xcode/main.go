@@ -422,6 +422,7 @@ func runCLI(args []string) (runErr error) {
 	if !*nonInteractive {
 		approver = newTerminalApprover()
 	}
+	runMaxSteps := *maxSteps
 	delegate := harness.NewDelegate(
 		func(ctx context.Context, role, prompt string, maxSteps int, subSink harness.EventSink) (string, error) {
 			role = strings.ToLower(strings.TrimSpace(role))
@@ -431,6 +432,11 @@ func runCLI(args []string) (runErr error) {
 			}
 			if isReviewer && *strictReviewerMaxSteps > 0 {
 				maxSteps = *strictReviewerMaxSteps
+			}
+			// The developer does the same work a single agent would, so it gets
+			// the run's step allowance rather than the smaller delegate default.
+			if role == "developer" && maxSteps < runMaxSteps {
+				maxSteps = runMaxSteps
 			}
 			// Built-in roles get their own narrowed registry: a tool the role
 			// may not use is neither advertised nor executable.

@@ -6,6 +6,7 @@ package harness_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -224,5 +225,65 @@ func TestRoleToolsNarrowsBuiltinRoles(t *testing.T) {
 		if got := names(role); got != expected {
 			t.Errorf("RoleTools(%q) = %s, want %s", role, got, expected)
 		}
+	}
+}
+
+// TestLastStepWithholdsToolsAndReturnsReport: on its last step an agent gets
+// no tools, so it ends with a report instead of failing with ErrMaxSteps.
+func TestLastStepWithholdsToolsAndReturnsReport(t *testing.T) {
+	registry, err := harness.NewRegistry(staticTool{name: "read_file", output: "content"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var offered []int
+	model := modelFunc(func(_ context.Context, messages []harness.Message, tools []harness.ToolSpec, _ harness.ModelEventSink) (harness.ModelResponse, error) {
+		offered = append(offered, len(tools))
+		if len(tools) == 0 {
+			if last := messages[len(messages)-1]; last.Role != "user" || !strings.Contains(last.Content, "last step") {
+				t.Errorf("final request did not carry the step-limit notice: %+v", last)
+			}
+			return harness.ModelResponse{Content: "report: edited one file"}, nil
+		}
+		call := harness.ToolCall{ID: fmt.Sprintf("c%d", len(offered)), Name: "read_file",
+			Arguments: json.RawMessage(fmt.Sprintf(`{"path":"f%d"}`, len(offered)))}
+		return harness.ModelResponse{ToolCalls: []harness.ToolCall{call}, FinishReason: "tool_calls"}, nil
+	})
+	result, err := harness.NewAgent(model, registry, 3, nil).RunWithOptions(context.Background(), "task", harness.RunOptions{})
+	if err != nil || result.Answer != "report: edited one file" || result.StopReason != harness.StopCompleted {
+		t.Fatalf("answer=%q stop=%s err=%v, want the final report", result.Answer, result.StopReason, err)
+	}
+	if fmt.Sprint(offered) != "[1 1 0]" {
+		t.Fatalf("tools offered per step = %v, want [1 1 0]", offered)
+	}
+	for _, message := range result.Messages {
+		if strings.Contains(message.Content, "[step limit]") {
+			t.Fatalf("the step-limit notice must not enter the transcript")
+		}
+	}
+}
+
+// TestIncompleteResponseCostsAStepNotTheRun: an unusable model response is
+// retried with a correction, a bounded number of times.
+func TestIncompleteResponseCostsAStepNotTheRun(t *testing.T) {
+	registry, err := harness.NewRegistry(staticTool{name: "read_file", output: "content"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := func(broken int) (harness.RunResult, error) {
+		calls := 0
+		model := modelFunc(func(_ context.Context, _ []harness.Message, _ []harness.ToolSpec, _ harness.ModelEventSink) (harness.ModelResponse, error) {
+			calls++
+			if calls <= broken {
+				return harness.ModelResponse{}, fmt.Errorf("%w: invalid tool arguments JSON at index 0", harness.ErrIncompleteModelResponse)
+			}
+			return harness.ModelResponse{Content: "done"}, nil
+		})
+		return harness.NewAgent(model, registry, 8, nil).RunWithOptions(context.Background(), "task", harness.RunOptions{})
+	}
+	if result, err := run(2); err != nil || result.Answer != "done" {
+		t.Fatalf("two unusable responses: answer=%q err=%v, want recovery", result.Answer, err)
+	}
+	if _, err := run(3); !errors.Is(err, harness.ErrIncompleteModelResponse) {
+		t.Fatalf("three unusable responses in a row: err=%v, want ErrIncompleteModelResponse", err)
 	}
 }

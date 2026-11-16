@@ -177,7 +177,7 @@ def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environme
             "--max-steps", str(args.max_steps),
             "--max-tokens", str(args.max_tokens),
             "--max-model-calls", str(args.max_model_calls),
-            "--provider-retries", "0",
+            "--provider-retries", str(args.provider_retries),
             "--timeout", f"{args.timeout_sec}s",
             "--reviewer-provider", args.reviewer_provider,
             "--thinking", args.thinking,
@@ -342,6 +342,8 @@ def main() -> int:
     parser.add_argument("--thinking", default="enabled", choices=["enabled", "disabled"],
                         help="developer thinking mode, applied to every cell alike")
     parser.add_argument("--reasoning-effort", default="high", choices=["low", "high", "max"])
+    parser.add_argument("--provider-retries", type=int, default=0,
+                        help="extra HTTP attempts after a transient provider error (0 keeps request counts exact)")
     parser.add_argument("--skip-preflight", action="store_true")
     parser.add_argument("--demo", action="store_true",
                         help="offline plumbing check with the demo model (expects every task to fail)")
@@ -428,6 +430,7 @@ def main() -> int:
         "context_budget": args.context_budget,
         "thinking": args.thinking,
         "reasoning_effort": args.reasoning_effort,
+        "provider_retries": args.provider_retries,
     }
     report = summarize(run_dir, cells)
     write_report(run_dir, report, context)

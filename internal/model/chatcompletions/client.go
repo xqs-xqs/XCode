@@ -477,6 +477,14 @@ func (c *Client) consumeSSE(
 			arguments = "{}"
 		}
 		if !json.Valid([]byte(arguments)) {
+			// Models often put a multi-line script into one string argument with
+			// literal newlines, which JSON forbids. Escape them and try again
+			// before giving the call up.
+			if repaired := escapeControlCharsInStrings(arguments); json.Valid([]byte(repaired)) {
+				arguments = repaired
+			}
+		}
+		if !json.Valid([]byte(arguments)) {
 			// Provider 流式拼接可能产出非法参数 JSON。丢弃该调用而不是让整个请求
 			// 失败：模型看不到这条调用的结果，会在后续请求中自行重试——与探索门禁
 			// 的响应级剪除是同一语义。仅当全部调用被丢弃且无正文时才视为失败。
@@ -503,6 +511,42 @@ func (c *Client) consumeSSE(
 		FinishReason:      finishReason,
 		WithheldToolCalls: skippedIndex >= 0,
 	}, nil
+}
+
+// escapeControlCharsInStrings rewrites raw control characters inside JSON
+// string literals as escapes and leaves everything else untouched. It only
+// repairs that one mistake; input that is broken in another way stays invalid.
+func escapeControlCharsInStrings(input string) string {
+	var out strings.Builder
+	inString, escaped := false, false
+	for i := 0; i < len(input); i++ {
+		c := input[i]
+		switch {
+		case !inString:
+			inString = c == '"'
+			out.WriteByte(c)
+		case escaped:
+			escaped = false
+			out.WriteByte(c)
+		case c == '\\':
+			escaped = true
+			out.WriteByte(c)
+		case c == '"':
+			inString = false
+			out.WriteByte(c)
+		case c == '\n':
+			out.WriteString(`\n`)
+		case c == '\r':
+			out.WriteString(`\r`)
+		case c == '\t':
+			out.WriteString(`\t`)
+		case c < 0x20:
+			fmt.Fprintf(&out, `\u%04x`, c)
+		default:
+			out.WriteByte(c)
+		}
+	}
+	return out.String()
 }
 
 // decodeAPIError 负责把非 2xx 响应正文转换成安全的 APIError。
