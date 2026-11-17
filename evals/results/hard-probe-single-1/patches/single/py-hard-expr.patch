@@ -1,0 +1,159 @@
+diff --git a/solution.py b/solution.py
+index 261821209d667415184ae3a849dad2f5898e48be..e2c3a1b31a73cefc3c1a30183d7f6fcd4c3caa61 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,10 +1,151 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++_DIGITS = "0123456789"
++_TWO_CHAR = ("//", "**")
++_ONE_CHAR = set("+-*/%()")
++
++
+ def _tokens(text):
+-    raise NotImplementedError
++    """Split ``text`` into a list of tokens.
++
++    A token is either ``("num", int)`` for an integer literal or a plain
++    string for an operator / parenthesis.  Only spaces may separate tokens.
++    """
++    tokens = []
++    i = 0
++    n = len(text)
++    while i < n:
++        ch = text[i]
++        if ch == " ":
++            i += 1
++            continue
++        if ch in _DIGITS:
++            j = i
++            while j < n and text[j] in _DIGITS:
++                j += 1
++            tokens.append(("num", int(text[i:j])))
++            i = j
++            continue
++        pair = text[i:i + 2]
++        if pair in _TWO_CHAR:
++            tokens.append(pair)
++            i += 2
++            continue
++        if ch in _ONE_CHAR:
++            tokens.append(ch)
++            i += 1
++            continue
++        raise ValueError("unknown character: %r" % (ch,))
++    if not tokens:
++        raise ValueError("empty expression")
++    return tokens
++
+ 
+ class _Parser:
+-    pass
++    """Recursive-descent parser/evaluator for the supported grammar.
++
++    expression := term (("+" | "-") term)*
++    term       := unary (("*" | "//" | "%") unary)*
++    unary      := "-" unary | power
++    power      := atom ["**" unary]
++    atom       := number | "(" expression ")"
++
++    ``power`` takes its exponent through ``unary``, which makes ``**``
++    right-associative and lets an exponent start with a unary minus, while
++    ``unary`` delegating to ``power`` keeps ``**`` tighter than a unary minus
++    on its left (-2**2 == -4).
++    """
++
++    def __init__(self, tokens):
++        self._tokens = tokens
++        self._pos = 0
++
++    # -- helpers ---------------------------------------------------------
++    def _peek(self):
++        if self._pos < len(self._tokens):
++            return self._tokens[self._pos]
++        return None
++
++    def _advance(self):
++        token = self._peek()
++        self._pos += 1
++        return token
++
++    @staticmethod
++    def _is_operand_start(token):
++        return token == "(" or (isinstance(token, tuple) and token[0] == "num")
++
++    # -- grammar ---------------------------------------------------------
++    def parse(self):
++        value = self._expression()
++        if self._pos != len(self._tokens):
++            raise ValueError("unexpected token: %r" % (self._peek(),))
++        return value
++
++    def _expression(self):
++        value = self._term()
++        while True:
++            token = self._peek()
++            if token == "+":
++                self._advance()
++                value = value + self._term()
++            elif token == "-":
++                self._advance()
++                value = value - self._term()
++            else:
++                return value
++
++    def _term(self):
++        value = self._unary()
++        while True:
++            token = self._peek()
++            if token == "*":
++                self._advance()
++                value = value * self._unary()
++            elif token == "//":
++                self._advance()
++                value = value // self._unary()
++            elif token == "%":
++                self._advance()
++                value = value % self._unary()
++            else:
++                return value
++
++    def _unary(self):
++        if self._peek() == "-":
++            self._advance()
++            return -self._unary()
++        return self._power()
++
++    def _power(self):
++        base = self._atom()
++        if self._peek() == "**":
++            self._advance()
++            exponent = self._unary()
++            if exponent < 0:
++                raise ValueError("negative exponent")
++            return base ** exponent
++        return base
++
++    def _atom(self):
++        token = self._advance()
++        if isinstance(token, tuple) and token[0] == "num":
++            return token[1]
++        if token == "(":
++            if self._peek() == ")":
++                raise ValueError("missing operand")
++            value = self._expression()
++            if self._peek() != ")":
++                raise ValueError("unbalanced parentheses")
++            self._advance()
++            return value
++        if token is None:
++            raise ValueError("missing operand")
++        raise ValueError("unexpected token: %r" % (token,))
++
+ 
+ def evaluate(text: str) -> int:
+-    raise NotImplementedError
++    if not isinstance(text, str):
++        raise ValueError("expression must be a string")
++    return _Parser(_tokens(text)).parse()
+ 

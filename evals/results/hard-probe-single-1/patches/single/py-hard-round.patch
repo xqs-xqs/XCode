@@ -1,0 +1,81 @@
+diff --git a/solution.py b/solution.py
+index 880ff28a69cf0c7317f4730765188b5ff26248f9..c6950a262d1a0d3ba10f2f6db6a9d4c7200868f4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,75 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++import re
++
++# Optional '-', one or more digits, optionally '.' plus one or more digits.
++# ASCII-only: \d would also accept non-ASCII digits, which are not valid here.
++_PATTERN = re.compile(r"(-?)([0-9]+)(?:\.([0-9]+))?")
++
++
++def _increment(digits: str) -> str:
++    """Add one to a string of ASCII digits (may grow by one digit)."""
++    out = list(digits)
++    i = len(out) - 1
++    while i >= 0:
++        if out[i] == "9":
++            out[i] = "0"
++            i -= 1
++        else:
++            out[i] = chr(ord(out[i]) + 1)
++            return "".join(out)
++    return "1" + "".join(out)
++
++
+ def round_decimal(text: str, places: int) -> str:
+-    raise NotImplementedError
++    if not isinstance(places, int):
++        raise ValueError("places must be an int")
++    if places < 0:
++        raise ValueError("places must be non-negative")
++    if not isinstance(text, str):
++        raise ValueError("text must be a str")
++
++    match = _PATTERN.fullmatch(text)
++    if match is None:
++        raise ValueError(f"malformed decimal: {text!r}")
++
++    negative = match.group(1) == "-"
++    int_part = match.group(2)
++    frac_part = match.group(3) or ""
++
++    # Work on the digit string only, tracking the decimal exponent separately.
++    digits = int_part + frac_part
++    scale = len(frac_part)
++
++    if places >= scale:
++        kept = digits + "0" * (places - scale)
++    else:
++        cut = len(digits) - (scale - places)
++        kept = digits[:cut]
++        dropped = digits[cut:]
++        first = dropped[0]
++        if first > "5":
++            round_up = True
++        elif first < "5":
++            round_up = False
++        elif dropped.strip("0"):
++            # More than a half of the last kept place.
++            round_up = True
++        else:
++            # Exactly half: round to even.
++            round_up = (ord(kept[-1]) - ord("0")) % 2 == 1
++        if round_up:
++            kept = _increment(kept)
++
++    # Split the kept digits back into integer and fraction parts.
++    int_len = len(kept) - places
++    int_out = kept[:int_len].lstrip("0") or "0"
++    frac_out = kept[int_len:]
++
++    is_zero = int_out == "0" and not frac_out.strip("0")
++    sign = "-" if negative and not is_zero else ""
++
++    if places == 0:
++        return sign + int_out
++    return sign + int_out + "." + frac_out
+ 

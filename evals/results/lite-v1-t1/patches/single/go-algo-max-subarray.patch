@@ -1,0 +1,27 @@
+diff --git a/solution.go b/solution.go
+index 413fa926e7078c8339ada598ea49055a0ece68ce..20fa032c7c1267b73a32655000e05cfd252172ae 100644
+--- a/solution.go
++++ b/solution.go
+@@ -7,5 +7,21 @@ var ErrEmpty = errors.New("values must not be empty")
+ 
+ // MaxSubarraySum returns the largest sum of a non-empty contiguous subarray.
+ func MaxSubarraySum(values []int) (int, error) {
+-	panic("not implemented")
++	if len(values) == 0 {
++		return 0, ErrEmpty
++	}
++
++	// Kadane's algorithm: best is the largest sum of a non-empty contiguous
++	// subarray ending at the current index, overall the maximum seen so far.
++	best, overall := values[0], values[0]
++	for _, v := range values[1:] {
++		best += v
++		if best < v {
++			best = v
++		}
++		if best > overall {
++			overall = best
++		}
++	}
++	return overall, nil
+ }

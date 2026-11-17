@@ -1,0 +1,89 @@
+diff --git a/check_wrap_tmp.py b/check_wrap_tmp.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..27364ac200d12128ea56dd3e6287aecf1f196739
+--- /dev/null
++++ b/check_wrap_tmp.py
+@@ -0,0 +1,56 @@
++import unittest
++
++from solution import wrap
++
++CASES = [
++    (("a b c", 3), ["a b", "c"]),
++    (("the quick brown fox", 10), ["the quick", "brown fox"]),
++    (("hi", 10), ["hi"]),
++    (("abcdef", 2), ["ab", "cd", "ef"]),
++    (("ab cdefg hi j", 7), ["ab", "cdefg", "hi j"]),
++    (("abcdefg x", 7), ["abcdefg", "x"]),
++    (("a\n\n\nb", 5), ["a", "", "b"]),
++    (("  hello  \n\tworld  \n\n bye", 5), ["hello", "world", "", "bye"]),
++    (("", 4), []),
++    (("   \n\n \n", 4), []),
++    (("x\n \ny", 3), ["x", "", "y"]),
++    (("aaaa bb cc", 4), ["aaaa", "bb", "cc"]),
++    (("abcdefg h", 7), ["abcdefg", "h"]),
++    (("supercalifragilistic", 3), ["sup", "erc", "ali", "fra", "gil", "ist", "ic"]),
++    (("abcdefghij x", 3), ["abc", "def", "ghi", "j x"]),
++    (("abcdef ghijkl", 3), ["abc", "def", "ghi", "jkl"]),
++    (("hi abcdefgh", 3), ["hi", "abc", "def", "gh"]),
++    (("a\r\nb\r\n\r\nc", 3), ["a b", "", "c"]),
++    (("abc\n", 5), ["abc"]),
++    (("\n\nabc\n\n", 5), ["abc"]),
++    (("a\nb\n\nc\nd", 5), ["a b", "", "c d"]),
++    (("abcdefghi ab cd", 4), ["abcd", "efgh", "i ab", "cd"]),
++    (("one", 1), ["o", "n", "e"]),
++    (("a  b\nc", 3), ["a b", "c"]),
++]
++
++
++class CheckWrap(unittest.TestCase):
++    def test_cases(self):
++        for args, expected in CASES:
++            with self.subTest(args=args):
++                self.assertEqual(wrap(*args), expected)
++
++    def test_no_empty_first_or_last(self):
++        for args, _ in CASES:
++            got = wrap(*args)
++            if got:
++                self.assertNotEqual(got[0], "")
++                self.assertNotEqual(got[-1], "")
++
++    def test_no_leading_trailing_spaces(self):
++        for args, _ in CASES:
++            for line in wrap(*args):
++                self.assertEqual(line, line.strip())
++
++    def test_width_validation(self):
++        for bad in (0, -1, -3):
++            with self.subTest(bad=bad):
++                with self.assertRaises(ValueError):
++                    wrap("a", bad)
++        self.assertEqual(wrap("a b", 1), ["a", "b"])
+diff --git a/solution.py b/solution.py
+index 59fc867c3cf9393bbb5f2f0f50a8b7b950e75c32..974e0977220b318aedb7a1c89aaaeb05ccf20b3e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -16,17 +16,19 @@ def wrap(text: str, width: int) -> list:
+ 
+     lines = []
+     for number, words in enumerate(paragraphs):
++        if number:
++            lines.append("")
+         line = ""
+         for word in words:
+             if len(word) > width:
+                 if line:
+                     lines.append(line)
+                 chunks = [word[start:start + width] for start in range(0, len(word), width)]
+-                lines.extend(chunks)
+-                line = ""
++                lines.extend(chunks[:-1])
++                line = chunks[-1]
+             elif not line:
+                 line = word
+-            elif len(line) + 1 + len(word) < width:
++            elif len(line) + 1 + len(word) <= width:
+                 line += " " + word
+             else:
+                 lines.append(line)

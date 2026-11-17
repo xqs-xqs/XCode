@@ -1,0 +1,11 @@
+diff --git a/solution.go b/solution.go
+index 2d32c80ed8949d578acb3f6fe81ea0fead407b67..64a188d7699de9569271e4ab7f7d9271506443ce 100644
+--- a/solution.go
++++ b/solution.go
+@@ -3,5 +3,5 @@ package solution
+ // Overlaps reports whether two closed integer intervals [aStart, aEnd] and
+ // [bStart, bEnd] share at least one integer.
+ func Overlaps(aStart, aEnd, bStart, bEnd int) bool {
+-	return aStart <= bEnd && bStart < aEnd
++	return aStart <= bEnd && bStart <= aEnd
+ }

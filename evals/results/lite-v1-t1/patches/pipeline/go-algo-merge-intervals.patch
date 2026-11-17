@@ -1,0 +1,42 @@
+diff --git a/solution.go b/solution.go
+index cf84787a90e913c25adb87b6d680e871d72979c4..e94c8de156bf304de2396c38d7bc52fe2a477bf8 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,7 +1,36 @@
+ package solution
+ 
++import "sort"
++
+ // Merge combines overlapping or touching closed intervals and returns them
+ // sorted by start. The input slices must not be modified.
+ func Merge(intervals [][]int) [][]int {
+-	panic("not implemented")
++	if len(intervals) == 0 {
++		return [][]int{}
++	}
++
++	// Shallow-copy the outer slice so the caller's order is preserved, then sort
++	// the copy by start.
++	sorted := make([][]int, 0, len(intervals))
++	for _, iv := range intervals {
++		if len(iv) == 2 {
++			sorted = append(sorted, iv)
++		}
++	}
++	sort.Slice(sorted, func(i, j int) bool {
++		return sorted[i][0] < sorted[j][0]
++	})
++
++	res := make([][]int, 0, len(sorted))
++	for _, next := range sorted {
++		if n := len(res); n > 0 && next[0] <= res[n-1][1] {
++			if next[1] > res[n-1][1] {
++				res[n-1][1] = next[1]
++			}
++			continue
++		}
++		// Always allocate a fresh pair: the shallow copy still aliases the input.
++		res = append(res, []int{next[0], next[1]})
++	}
++	return res
+ }

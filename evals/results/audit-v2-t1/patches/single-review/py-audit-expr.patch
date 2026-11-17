@@ -1,0 +1,151 @@
+diff --git a/fuzz_check.py b/fuzz_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b08a761a1ca08b892b54f8fb39dfbb5839e13812
+--- /dev/null
++++ b/fuzz_check.py
+@@ -0,0 +1,51 @@
++import random
++
++from solution import evaluate
++
++random.seed(7)
++
++
++def gen(depth=0):
++    # generate (text, python-equivalent-text)
++    r = random.random()
++    if depth > 3 or r < 0.3:
++        n = str(random.randint(0, 4))
++        if random.random() < 0.3:
++            return "-" + n, "(-" + n + ")"
++        return n, n
++    if r < 0.55:
++        a, pa = gen(depth + 1)
++        b, pb = gen(depth + 1)
++        op = random.choice(["+", "-", "*", "//", "%"])
++        return f"{a} {op} {b}", f"({pa} {op} {pb})"
++    if r < 0.7:
++        a, pa = gen(depth + 1)
++        return f"({a})", f"({pa})"
++    a, pa = gen(depth + 1)
++    b, pb = gen(depth + 1)
++    return f"{a}**{b}", f"({pa})**({pb})"
++
++
++bad = 0
++for _ in range(20000):
++    text, ptext = gen()
++    try:
++        expected = eval(ptext)  # noqa: S307 - test harness only
++    except (ZeroDivisionError, ValueError):
++        continue
++    if not isinstance(expected, int):
++        continue
++    try:
++        got = evaluate(text)
++    except Exception as exc:  # noqa: BLE001
++        print("RAISED", repr(text), repr(exc), "expected", expected)
++        bad += 1
++        if bad > 8:
++            break
++        continue
++    if got != expected:
++        print("MISMATCH", repr(text), got, "expected", expected)
++        bad += 1
++        if bad > 8:
++            break
++print("done, bad =", bad)
+diff --git a/solution.py b/solution.py
+index d3ccdf7aba4b992a5827ea483441ad6d8ea1c498..70c173d216831f975b87d379825fccc889acb573 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,14 +1,13 @@
+ """A recursive-descent evaluator for integer arithmetic."""
+ 
+-import math
+ import re
+ 
+-_TOKEN = re.compile(r"\s*(?:([0-9]+)|(\*\*|//|[-+*%()]))")
++_TOKEN = re.compile(r" *(?:([0-9]+)|(\*\*|//|[-+*%()]))")
+ 
+ 
+ def _tokens(text):
+     tokens, position = [], 0
+-    stripped = text.rstrip()
++    stripped = text.rstrip(" ")
+     while position < len(stripped):
+         match = _TOKEN.match(stripped, position)
+         if match is None:
+@@ -50,9 +49,9 @@ class _Parser:
+             if operator == "*":
+                 value *= right
+             elif operator == "//":
+-                value = int(value / right)
++                value //= right
+             else:
+-                value = int(math.fmod(value, right))
++                value %= right
+         return value
+ 
+     def unary(self):
+@@ -66,6 +65,8 @@ class _Parser:
+         if self.peek() == "**":
+             self.take()
+             exponent = self.unary()
++            if exponent < 0:
++                raise ValueError("negative exponent")
+             return base ** exponent
+         return base
+ 
+@@ -84,4 +85,6 @@ class _Parser:
+ def evaluate(text: str) -> int:
+     parser = _Parser(_tokens(text))
+     value = parser.expression()
++    if parser.peek() is not None:
++        raise ValueError(f"unexpected token {parser.peek()!r}")
+     return value
+diff --git a/test_visible.py b/test_visible.py
+index 54fb2bc527e4c46b0d63f04121b9a0bf59385e82..b8e18dc7a46e3a5dfb426412095e52f7123ed849 100644
+--- a/test_visible.py
++++ b/test_visible.py
+@@ -17,5 +17,40 @@ class TestEvaluate(unittest.TestCase):
+         self.assertEqual(evaluate("-7 % 3"), 2)
+ 
+ 
++class TestExtra(unittest.TestCase):
++    def test_values(self):
++        cases = {
++            "1 + 2 * 3": 7,
++            "(1 + 2) * 3": 9,
++            "7 // 2": 3,
++            "-7 % 3": 2,
++            "-7 // 2": -4,
++            "7 % -3": -2,
++            "2**3**2": 512,
++            "-2**2": -4,
++            "(-2)**2": 4,
++            "-2 * 3**2": -18,
++            "2 * -3 ** 2": -18,
++            "10 - 3 - 2": 5,
++            "100 // 7 // 2": 7,
++            "  4  *  ( 2 + 1 )  ": 12,
++            "8 // 2 * 3": 12,
++            "1 - -2": 3,
++            "2 ** 0 ** 0": 2,
++        }
++        for text, expected in cases.items():
++            self.assertEqual(evaluate(text), expected, text)
++
++    def test_errors(self):
++        for text in ["", "   ", "1 2", "1/2", "1 / 2", "(1+2", "1+2)", "1 +", "+1",
++                     "1 + * 2", "2 * * 3", "2 / / 3", "()", "abc", "1\t+ 2", "2**-1",
++                     "2**(-1)", "-2**2**-1", "1\n+2", "1 = 2"]:
++            with self.assertRaises(ValueError, msg=text):
++                evaluate(text)
++        for text in ["1//0", "1 % 0", "-7 // 0"]:
++            with self.assertRaises(ZeroDivisionError, msg=text):
++                evaluate(text)
++
++
+ if __name__ == "__main__":
+     unittest.main()

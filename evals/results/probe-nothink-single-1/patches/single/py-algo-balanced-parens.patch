@@ -1,0 +1,30 @@
+diff --git a/solution.py b/solution.py
+index 53c3019a413d45cc902452826eb8500ace171162..b1f55da7ecbaeb0bc0154c4f309d52f25d7ad664 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,24 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def is_balanced(text: str) -> bool:
+-    raise NotImplementedError
++    # Track the range [low, high] of possible open-parenthesis counts.
++    low = high = 0
++    for char in text:
++        if char == "(":
++            low += 1
++            high += 1
++        elif char == ")":
++            low -= 1
++            high -= 1
++        elif char == "*":
++            low -= 1
++            high += 1
++        else:
++            raise ValueError(f"invalid character: {char!r}")
++        # A wildcard can act as nothing, so the minimum never drops below 0.
++        if low < 0:
++            low = 0
++        # Even using every wildcard as '(', we cannot recover.
++        if high < 0:
++            return False
++    return low == 0
+ 

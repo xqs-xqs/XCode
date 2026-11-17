@@ -1,0 +1,57 @@
+diff --git a/solution.py b/solution.py
+index c90d1ff00b0c26853f0ee6b90588d3e357e7676a..275f925c9b70f038569fec1f27abc9add37c86a0 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,10 +1,49 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def _text(cell) -> str:
+-    raise NotImplementedError
++    if cell is None:
++        return ""
++    if isinstance(cell, bool):
++        return "yes" if cell else "no"
++    if isinstance(cell, float):
++        return f"{cell:.2f}"
++    if isinstance(cell, int):
++        return str(cell)
++    return str(cell)
+ 
+ def _numeric(cell) -> bool:
+-    raise NotImplementedError
++    return isinstance(cell, (int, float)) and not isinstance(cell, bool)
+ 
+ def format_table(headers: list, rows: list) -> str:
+-    raise NotImplementedError
++    if not headers:
++        raise ValueError("headers must not be empty")
++
++    normalized = []
++    for row in rows:
++        if len(row) > len(headers):
++            raise ValueError("row has more cells than headers")
++        cells = list(row) + [None] * (len(headers) - len(row))
++        normalized.append(cells)
++
++    widths = [len(_text(h)) for h in headers]
++    for cells in normalized:
++        for i, cell in enumerate(cells):
++            widths[i] = max(widths[i], len(_text(cell)))
++
++    def render(cells, aligns):
++        parts = []
++        for text, width, right in zip(cells, widths, aligns):
++            parts.append(text.rjust(width) if right else text.ljust(width))
++        return "  ".join(parts).rstrip()
++
++    header_line = render(
++        [_text(h) for h in headers],
++        [_numeric(h) for h in headers],
++    )
++    separator = "  ".join("-" * w for w in widths).rstrip()
++
++    lines = [header_line, separator]
++    for cells in normalized:
++        lines.append(render([_text(c) for c in cells], [_numeric(c) for c in cells]))
++
++    return "\n".join(lines)
+ 

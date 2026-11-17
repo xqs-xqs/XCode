@@ -1,0 +1,107 @@
+diff --git a/solution.py b/solution.py
+index cf8434256fa3bddf15ca4f235b111087df858da1..d8d13bb09c353604f0bd36410a62f321b57a6447 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,13 +1,98 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++_NUM = re.compile(r"[0-9]+")
++
++
++def _component(text):
++    if not _NUM.fullmatch(text):
++        raise ValueError("non-digit version component: %r" % (text,))
++    if len(text) > 1 and text[0] == "0":
++        raise ValueError("leading zero in version component: %r" % (text,))
++    return int(text)
++
++
+ def _full(text):
+-    raise NotImplementedError
++    """Parse a complete MAJOR.MINOR.PATCH version into a 3-tuple."""
++    if not isinstance(text, str):
++        raise ValueError("version must be a string")
++    parts = text.split(".")
++    if len(parts) != 3:
++        raise ValueError("version must have exactly three components: %r" % (text,))
++    return tuple(_component(part) for part in parts)
++
+ 
+ def _partial(text):
+-    raise NotImplementedError
++    """Parse a version with 1-3 components; missing trailing parts are zero."""
++    parts = text.split(".")
++    if not 1 <= len(parts) <= 3:
++        raise ValueError("malformed version: %r" % (text,))
++    values = [_component(part) for part in parts]
++    while len(values) < 3:
++        values.append(0)
++    return tuple(values)
++
++
++def _caret_upper(base):
++    major, minor, patch = base
++    for index, value in enumerate(base):
++        if value:
++            upper = list(base)
++            upper[index] = value + 1
++            for rest in range(index + 1, 3):
++                upper[rest] = 0
++            return tuple(upper)
++    return (0, 0, 1)
++
+ 
+ def _comparator(token):
+-    raise NotImplementedError
++    """Return a predicate taking a version tuple for one comparator token."""
++    if token == "*":
++        return lambda version: True
++    if token.startswith("*"):
++        raise ValueError("unknown operator in %r" % (token,))
++
++    for op in (">=", "<=", ">", "<", "=", "^", "~"):
++        if token.startswith(op):
++            rest = token[len(op):]
++            break
++    else:
++        if not token or not token[0].isdigit():
++            raise ValueError("unknown operator in %r" % (token,))
++        target = _partial(token)
++        return lambda version: version == target
++
++    base = _partial(rest)
++
++    if op == "=":
++        return lambda version: version == base
++    if op == ">":
++        return lambda version: version > base
++    if op == ">=":
++        return lambda version: version >= base
++    if op == "<":
++        return lambda version: version < base
++    if op == "<=":
++        return lambda version: version <= base
++    if op == "^":
++        upper = _caret_upper(base)
++        return lambda version: base <= version < upper
++    # op == "~"
++    upper = (base[0], base[1] + 1, 0)
++    return lambda version: base <= version < upper
++
++
++def _alternative(text):
++    text = text.strip()
++    if not text:
++        raise ValueError("empty alternative")
++    return [_comparator(token) for token in text.split()]
++
+ 
+ def satisfies(version: str, spec: str) -> bool:
+-    raise NotImplementedError
++    parsed_version = _full(version)
++    if not isinstance(spec, str) or not spec.strip():
++        raise ValueError("empty spec")
++    alternatives = [_alternative(part) for part in spec.split("||")]
++    return any(all(pred(parsed_version) for pred in alt) for alt in alternatives)
+ 

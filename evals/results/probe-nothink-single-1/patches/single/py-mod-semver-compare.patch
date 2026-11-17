@@ -1,0 +1,39 @@
+diff --git a/solution.py b/solution.py
+index 73bb3c445f9bf702bc768389a5a611b55782ae6c..e0ff1a01be9217242432b70a922af0dda9c572a5 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,32 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def _parts(version: str) -> list:
+-    raise NotImplementedError
++    if not isinstance(version, str):
++        raise ValueError(f"version must be a string, got {type(version).__name__}")
++    text = version
++    if text[:1] in ("v", "V"):
++        text = text[1:]
++    if not text:
++        raise ValueError("version string is empty")
++    parts = []
++    for component in text.split("."):
++        # int() alone is too lenient: it accepts surrounding whitespace,
++        # a leading sign and underscores ("1_0" -> 10), so require plain
++        # ASCII digits before converting.
++        if not component.isdigit() or not component.isascii():
++            raise ValueError(f"non-numeric version component: {component!r}")
++        parts.append(int(component))
++    return parts
+ 
+ def compare(left: str, right: str) -> int:
+-    raise NotImplementedError
++    a = _parts(left)
++    b = _parts(right)
++    width = max(len(a), len(b))
++    a.extend([0] * (width - len(a)))
++    b.extend([0] * (width - len(b)))
++    for x, y in zip(a, b):
++        if x < y:
++            return -1
++        if x > y:
++            return 1
++    return 0
+ 

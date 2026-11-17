@@ -1,0 +1,72 @@
+diff --git a/edge_check.py b/edge_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b0dbbe143c431926a062fa371519903c6ec74346
+--- /dev/null
++++ b/edge_check.py
+@@ -0,0 +1,31 @@
++from solution import compare
++
++cases = [
++    ("1.2.3", "1.2.4", -1),
++    ("1.2.3", "1.2.3", 0),
++    ("2.0.0", "1.9.9", 1),
++    ("1.0", "1.0.0", 0),
++    ("1.0", "1.0.1", -1),
++    ("v1.2", "V1.2", 0),
++    ("v1.10.0", "1.9", 1),
++    ("1.10", "1.9", 1),
++    ("1.2.3.0.0", "1.2.3", 0),
++    ("010.1", "10.1", 0),
++    ("0.0.1", "0.0.0.1", 1),
++    ("1.2.3", "1.2.3.0", 0),
++]
++for left, right, expected in cases:
++    got = compare(left, right)
++    print("ok  " if got == expected else "FAIL", left, right, got, "expected", expected)
++
++for bad in ("", "v", "V", ".", "1..2", "1.a", "1.-2", "1.2.", "1.x", "1. 2"):
++    try:
++        compare(bad, "1.0")
++        print("FAIL no raise for", repr(bad))
++    except ValueError as exc:
++        print("ok   raises", repr(bad), "->", exc)
++
++# symmetry check
++for left, right, _ in cases:
++    assert compare(left, right) == -compare(right, left), (left, right)
++print("ok   antisymmetric")
+diff --git a/solution.py b/solution.py
+index 73bb3c445f9bf702bc768389a5a611b55782ae6c..59683144363a0ecc4e2457c5370898fe761d666b 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,28 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def _parts(version: str) -> list:
+-    raise NotImplementedError
++    if not isinstance(version, str):
++        raise ValueError(f"version must be a string, got {type(version).__name__}")
++    text = version[1:] if version[:1] in ("v", "V") else version
++    if not text:
++        raise ValueError(f"empty version string: {version!r}")
++    parts = []
++    for chunk in text.split("."):
++        chunk = chunk.strip()
++        if not chunk or not chunk.isdigit():
++            raise ValueError(f"non-numeric component {chunk!r} in {version!r}")
++        parts.append(int(chunk))
++    return parts
++
+ 
+ def compare(left: str, right: str) -> int:
+-    raise NotImplementedError
++    a = _parts(left)
++    b = _parts(right)
++    width = max(len(a), len(b))
++    # Missing trailing components count as zero.
++    a.extend([0] * (width - len(a)))
++    b.extend([0] * (width - len(b)))
++    for x, y in zip(a, b):
++        if x != y:
++            return -1 if x < y else 1
++    return 0
+ 

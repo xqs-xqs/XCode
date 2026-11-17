@@ -1,0 +1,42 @@
+diff --git a/solution.py b/solution.py
+index 66e9c4a5ab64f86e84894a1bc98f12db2bc7fc42..18ac3aa42404d0db52547f5d0f524dd7ad366529 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,34 @@
+-"""Implement the functions declared below; keep the signatures unchanged."""
++"""Convert between duration strings and seconds."""
++import re
++
++_PART_RE = re.compile(r"(?:([0-9]+)w)?(?:([0-9]+)d)?(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?")
++_UNIT_SECONDS = (7 * 24 * 3600, 24 * 3600, 3600, 60, 1)
++
++
+ def parse_duration(text: str) -> int:
+-    raise NotImplementedError
++    if not isinstance(text, str):
++        raise ValueError("duration must be a string")
++    match = _PART_RE.fullmatch(text)
++    if match is None or all(value is None for value in match.groups()):
++        raise ValueError(f"invalid duration: {text!r}")
++    return sum(int(value) * seconds for value, seconds in zip(match.groups(), _UNIT_SECONDS) if value is not None)
++
+ 
+ def format_duration(seconds: int) -> str:
+-    raise NotImplementedError
++    if isinstance(seconds, bool) or not isinstance(seconds, int):
++        raise TypeError("seconds must be an int")
++    if seconds < 0:
++        raise ValueError("seconds must be non-negative")
++    if seconds == 0:
++        return "0s"
++
++    parts = []
++    units = (("w", 7 * 24 * 3600), ("d", 24 * 3600), ("h", 3600), ("m", 60), ("s", 1))
++    remaining = seconds
++    # Weeks have no natural-range restriction beyond taking whole weeks.
++    for unit, unit_seconds in units:
++        value, remaining = divmod(remaining, unit_seconds)
++        if value:
++            parts.append(f"{value}{unit}")
++    return "".join(parts)
+ 

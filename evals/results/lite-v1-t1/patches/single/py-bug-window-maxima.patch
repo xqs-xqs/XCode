@@ -1,0 +1,12 @@
+diff --git a/solution.py b/solution.py
+index 77fcd8deced79c2cb1fdc82f325497e1a331b984..610555ff920ae05c74c5549c3b373cb00c3b3069 100644
+--- a/solution.py
++++ b/solution.py
+@@ -8,6 +8,6 @@ def window_maxima(values: list, width: int) -> list:
+     if width > len(values):
+         return []
+     result = []
+-    for start in range(len(values) - width):
++    for start in range(len(values) - width + 1):
+         result.append(max(values[start:start + width]))
+     return result

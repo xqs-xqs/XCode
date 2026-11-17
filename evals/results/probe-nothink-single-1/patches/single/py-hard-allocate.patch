@@ -1,0 +1,52 @@
+diff --git a/solution.py b/solution.py
+index 679a5aae5cb88e1bffb125ddd3c0c1bd67789d5b..119539751f3570c9b69cbcd47cd853e25b7f9e1b 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,46 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++
+ def allocate(total: int, weights: list) -> list:
+-    raise NotImplementedError
++    if isinstance(total, bool) or not isinstance(total, int):
++        raise TypeError("total must be an int")
++    if not isinstance(weights, (list, tuple)):
++        raise TypeError("weights must be a list of ints")
++    if not weights:
++        raise ValueError("weights must not be empty")
++
++    for weight in weights:
++        if isinstance(weight, bool) or not isinstance(weight, int):
++            raise TypeError("each weight must be an int")
++        if weight < 0:
++            raise ValueError("weights must be non-negative")
++
++    weight_sum = sum(weights)
++    if weight_sum == 0:
++        raise ValueError("at least one weight must be positive")
++
++    amount = -total if total < 0 else total
++
++    parts = []
++    remainders = []
++    for index, weight in enumerate(weights):
++        if weight == 0:
++            parts.append(0)
++            remainders.append(0)
++            continue
++        numerator = amount * weight
++        parts.append(numerator // weight_sum)
++        remainders.append(numerator % weight_sum)
++
++    leftover = amount - sum(parts)
++    order = sorted(
++        (index for index, weight in enumerate(weights) if weight != 0),
++        key=lambda index: (-remainders[index], index),
++    )
++    for index in order[:leftover]:
++        parts[index] += 1
++
++    if total < 0:
++        parts = [-part for part in parts]
++    return parts
+ 

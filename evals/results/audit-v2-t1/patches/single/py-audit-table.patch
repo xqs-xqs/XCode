@@ -1,0 +1,37 @@
+diff --git a/solution.py b/solution.py
+index 261802480da91b8f43ba152121f104fcd3d68d69..21625336670a76665f4fa888d0a50b94dee12161 100644
+--- a/solution.py
++++ b/solution.py
+@@ -7,11 +7,13 @@ def _text(cell) -> str:
+     if isinstance(cell, bool):
+         return "yes" if cell else "no"
+     if isinstance(cell, float):
+-        return str(round(cell, 2))
++        return format(cell, ".2f")
+     return str(cell)
+ 
+ 
+ def _numeric(cell) -> bool:
++    if isinstance(cell, bool):
++        return False
+     return isinstance(cell, (int, float))
+ 
+ 
+@@ -20,7 +22,10 @@ def format_table(headers: list, rows: list) -> str:
+         raise ValueError("headers must not be empty")
+     padded = []
+     for row in rows:
+-        padded.append(list(row) + [None] * (len(headers) - len(row)))
++        cells = list(row)
++        if len(cells) > len(headers):
++            raise ValueError("row has more cells than headers")
++        padded.append(cells + [None] * (len(headers) - len(cells)))
+     widths = [len(header) for header in headers]
+     for row in padded:
+         for index, cell in enumerate(row):
+@@ -34,4 +39,4 @@ def format_table(headers: list, rows: list) -> str:
+         for cell, width in zip(row, widths):
+             cells.append(_text(cell).rjust(width) if _numeric(cell) else _text(cell).ljust(width))
+         lines.append("  ".join(cells))
+-    return "\n".join(lines)
++    return "\n".join(line.rstrip() for line in lines)

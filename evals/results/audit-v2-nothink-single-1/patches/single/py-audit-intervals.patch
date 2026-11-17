@@ -1,0 +1,49 @@
+diff --git a/solution.py b/solution.py
+index 8990b2a3149aeb6c42451b5aa9559fab0e6c8e71..e9cff45ccb099f84027d5312c9adfd777f260e9b 100644
+--- a/solution.py
++++ b/solution.py
+@@ -8,19 +8,16 @@ class IntervalSet:
+     def add(self, start, end):
+         if start > end:
+             raise ValueError("start must not exceed end")
+-        merged, placed = [], False
++        if start == end:
++            return
++        merged = []
+         for low, high in self._items:
+-            if high <= start:
+-                merged.append((low, high))
+-            elif end < low:
+-                if not placed:
+-                    merged.append((start, end))
+-                    placed = True
++            if high < start or end < low:
+                 merged.append((low, high))
+             else:
+                 start, end = min(start, low), max(end, high)
+-        if not placed:
+-            merged.append((start, end))
++        merged.append((start, end))
++        merged.sort()
+         self._items = merged
+ 
+     def remove(self, start, end):
+@@ -35,7 +32,7 @@ class IntervalSet:
+                 continue
+             if low < start:
+                 kept.append((low, start))
+-            elif end < high:
++            if end < high:
+                 kept.append((end, high))
+         self._items = kept
+ 
+@@ -43,7 +40,7 @@ class IntervalSet:
+         return any(low <= value < high for low, high in self._items)
+ 
+     def intervals(self):
+-        return list(self._items)
++        return sorted(self._items)
+ 
+     def __len__(self):
+-        return len(self._items)
++        return sum(high - low for low, high in self._items)

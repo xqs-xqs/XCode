@@ -1,0 +1,58 @@
+diff --git a/solution.py b/solution.py
+index a4e640d12e585a9f05c51942904375f8f8e0ce98..3d8b9d7bcb2812c11d4d153fcae1c0ae26d5d259 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,52 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def split_line(line: str) -> list:
+-    raise NotImplementedError
++    """Split one CSV record into fields.
++
++    Commas separate fields. A field may be wrapped in double quotes, in which
++    case it may contain commas and doubled quotes ("" -> a literal quote).
++    Empty fields are returned as "". A quoted field that is never closed
++    raises ValueError.
++    """
++    fields = []
++    pos = 0
++    size = len(line)
++
++    while True:
++        if pos < size and line[pos] == '"':
++            # quoted field: read until the closing quote
++            pos += 1
++            chars = []
++            while True:
++                if pos >= size:
++                    raise ValueError("unclosed quoted field in line: %r" % (line,))
++                char = line[pos]
++                if char == '"':
++                    if pos + 1 < size and line[pos + 1] == '"':
++                        chars.append('"')
++                        pos += 2
++                        continue
++                    pos += 1  # consume closing quote
++                    break
++                chars.append(char)
++                pos += 1
++            # tolerate (and keep) any stray characters before the next comma
++            while pos < size and line[pos] != ',':
++                chars.append(line[pos])
++                pos += 1
++            fields.append(''.join(chars))
++        else:
++            start = pos
++            while pos < size and line[pos] != ',':
++                pos += 1
++            fields.append(line[start:pos])
++
++        if pos < size and line[pos] == ',':
++            pos += 1
++            if pos == size:  # trailing comma -> final empty field
++                fields.append("")
++                break
++            continue
++        break
++
++    return fields
+ 

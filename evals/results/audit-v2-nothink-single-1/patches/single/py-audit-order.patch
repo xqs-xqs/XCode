@@ -1,0 +1,28 @@
+diff --git a/solution.py b/solution.py
+index 21af57e53498db46a410a1cc36abb50e29877939..15f4ae4f93c352d604bed19c12805dbd4c4f6346 100644
+--- a/solution.py
++++ b/solution.py
+@@ -9,7 +9,7 @@ def install_order(packages: dict) -> list:
+         for need in needs:
+             if need not in packages:
+                 raise KeyError(need)
+-        dependencies[name] = set(needs) - {name}
++        dependencies[name] = set(needs)
+ 
+     dependents = {name: [] for name in dependencies}
+     for name, needs in dependencies.items():
+@@ -21,7 +21,7 @@ def install_order(packages: dict) -> list:
+ 
+     order = []
+     while ready:
+-        name = ready.pop()
++        name = heapq.heappop(ready)
+         order.append(name)
+         for dependent in dependents[name]:
+             waiting[dependent] -= 1
+@@ -40,4 +40,4 @@ def install_order(packages: dict) -> list:
+     cycle = path[seen[current]:]
+     start = cycle.index(min(cycle))
+     cycle = cycle[start:] + cycle[:start]
+-    raise ValueError(" -> ".join(cycle))
++    raise ValueError(" -> ".join(cycle + cycle[:1]))

@@ -1,0 +1,31 @@
+diff --git a/solution.py b/solution.py
+index 3b576f71a92c745fd2279a7fafb5b7fbf8b2dc13..80f43b73010c55c1aa3246e6255cc550a8763a1c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,25 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def parse_ini(text: str) -> dict:
+-    raise NotImplementedError
++    """Parse a small INI-style config into ``{section: {key: value}}``.
++
++    Lines are trimmed; blank lines and lines starting with ``#`` or ``;`` are
++    skipped. ``[name]`` starts a new section, keys before any header live in
++    the ``""`` section, and a repeated key keeps its last value. Any other
++    non-empty line raises :class:`ValueError`.
++    """
++    sections: dict = {}
++    section = ""
++    for line in text.splitlines():
++        line = line.strip()
++        if not line or line[0] in "#;":
++            continue
++        if line.startswith("[") and line.endswith("]") and len(line) >= 2:
++            section = line[1:-1].strip()
++            sections.setdefault(section, {})
++            continue
++        key, sep, value = line.partition("=")
++        if not sep or not key.strip():
++            raise ValueError(f"invalid line: {line!r}")
++        sections.setdefault(section, {})[key.strip()] = value.strip()
++    return sections
+ 

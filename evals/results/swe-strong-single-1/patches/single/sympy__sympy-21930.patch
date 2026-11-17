@@ -1,0 +1,17 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 64d3207d093ebf74e7aeba9a4c28d3b9d635c07c..2d2f8b776e3ea631c75ce1815785de1ba62cacde 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -667,6 +667,12 @@ def _helper_print_standard_power(self, expr, template):
+         base = self.parenthesize(expr.base, PRECEDENCE['Pow'])
+         if expr.base.is_Symbol:
+             base = self.parenthesize_super(base)
++        elif "^" in base and not (base.startswith(r'\left(')
++                                   and base.endswith(r'\right)')):
++            # the base already contains a superscript (e.g. ``b^\dagger_0``
++            # from the secondquant module), so it must be protected to avoid
++            # a double superscript in the output
++            base = self.parenthesize_super(base)
+         elif (isinstance(expr.base, Derivative)
+             and base.startswith(r'\left(')
+             and re.match(r'\\left\(\\d?d?dot', base)

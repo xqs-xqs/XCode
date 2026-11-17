@@ -1,0 +1,19 @@
+diff --git a/sympy/physics/hep/gamma_matrices.py b/sympy/physics/hep/gamma_matrices.py
+index 23284e4a9297c01c392ce56b3ffa84d319ac8bcf..9bb980165071bb1c9f93c814d6610ed67c34b16e 100644
+--- a/sympy/physics/hep/gamma_matrices.py
++++ b/sympy/physics/hep/gamma_matrices.py
+@@ -692,9 +692,11 @@ def kahane_simplify(expression):
+     # power of two factor, as described in Kahane's paper:
+     resulting_coeff *= 2**(number_of_contractions)
+ 
+-    # If `first_dum_pos` is not zero, it means that there are trailing free gamma
+-    # matrices in front of `expression`, so multiply by them:
+-    for i in range(0, first_dum_pos):
++    # If `first_dum_pos` is not zero, it means that there are leading free gamma
++    # matrices in front of `expression` (i.e. gamma matrices that are not
++    # contracted); they are inserted, in their original order, at the beginning
++    # of every list of indices in `resulting_indices`:
++    for i in reversed(range(0, first_dum_pos)):
+         [ri.insert(0, free_pos[i]) for ri in resulting_indices]
+ 
+     resulting_expr = S.Zero

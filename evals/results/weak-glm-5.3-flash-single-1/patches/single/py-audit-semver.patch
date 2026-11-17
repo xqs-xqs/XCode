@@ -1,0 +1,47 @@
+diff --git a/solution.py b/solution.py
+index af1b7c6f135acfbcfe556e04fe525b97b3dcb71c..735cb187b4ab5ef4482fa34617630ae9f3246bc1 100644
+--- a/solution.py
++++ b/solution.py
+@@ -2,7 +2,7 @@
+ 
+ import re
+ 
+-_NUMBER = r"[0-9]+"
++_NUMBER = r"(?:0|[1-9][0-9]*)"
+ _FULL = re.compile(rf"{_NUMBER}\.{_NUMBER}\.{_NUMBER}")
+ _PARTIAL = re.compile(rf"{_NUMBER}(?:\.{_NUMBER}){{0,2}}")
+ _COMPARATOR = re.compile(r"(>=|<=|>|<|=|\^|~)?(.+)")
+@@ -37,13 +37,27 @@ def _comparator(token):
+     if operator == "<":
+         return lambda version: version < base
+     if operator == "<=":
+-        return lambda version: version < base
++        return lambda version: version <= base
++
+     if operator == "^":
+-        major, minor, patch = base
+-        upper = (major + 1, 0, 0)
+-    else:
+-        upper = (base[0] + 1, 0, 0)
+-    return lambda version: base <= version < upper
++        upper = _caret_upper_bound(base)
++        return lambda version: base <= version < upper
++
++    if operator == "~":
++        upper = (base[0], base[1] + 1, 0)
++        return lambda version: base <= version < upper
++
++    raise ValueError(f"unknown operator: {operator!r}")
++
++
++def _caret_upper_bound(base):
++    """Version just past the range allowed by a caret comparator."""
++    major, minor, patch = base
++    if major > 0:
++        return (major + 1, 0, 0)
++    if minor > 0:
++        return (0, minor + 1, 0)
++    return (0, 0, patch + 1)
+ 
+ 
+ def satisfies(version: str, spec: str) -> bool:

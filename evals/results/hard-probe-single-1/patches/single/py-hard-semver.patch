@@ -1,0 +1,100 @@
+diff --git a/solution.py b/solution.py
+index cf8434256fa3bddf15ca4f235b111087df858da1..20dc4c7dc70f906a1cad67e47a80952e24eec5fd 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,13 +1,91 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++# A full version: exactly three numbers, no leading zeros.
++_FULL_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
++
++# A comparator version: one to three numbers, no leading zeros.
++_PARTIAL_RE = re.compile(
++    r"^(0|[1-9][0-9]*)(?:\.(0|[1-9][0-9]*))?(?:\.(0|[1-9][0-9]*))?$"
++)
++
++# Longest operators first so ">=" is not read as ">" followed by "=1.2.3".
++_OPERATORS = (">=", "<=", ">", "<", "=", "^", "~")
++
++
+ def _full(text):
+-    raise NotImplementedError
++    """Parse a version that must have all three components."""
++    match = _FULL_RE.match(text) if isinstance(text, str) else None
++    if match is None:
++        raise ValueError("malformed version: %r" % (text,))
++    return tuple(int(part) for part in match.groups())
++
+ 
+ def _partial(text):
+-    raise NotImplementedError
++    """Parse a comparator version; missing trailing components count as zero."""
++    match = _PARTIAL_RE.match(text) if isinstance(text, str) else None
++    if match is None:
++        raise ValueError("malformed version in spec: %r" % (text,))
++    parts = [int(part) for part in match.groups() if part is not None]
++    return tuple(parts + [0] * (3 - len(parts)))
++
++
++def _caret_upper(base):
++    """Next version that increments the left-most non-zero component."""
++    major, minor, patch = base
++    if major:
++        return (major + 1, 0, 0)
++    if minor:
++        return (0, minor + 1, 0)
++    return (0, 0, patch + 1)
++
+ 
+ def _comparator(token):
+-    raise NotImplementedError
++    """Turn one comparator token into a predicate over a full version tuple."""
++    if token == "*":
++        return lambda version: True
++    for operator in _OPERATORS:
++        if token.startswith(operator):
++            raw = token[len(operator):]
++            break
++    else:
++        operator, raw = "=", token
++
++    target = _partial(raw)  # an empty or malformed remainder raises here
++
++    if operator == "=":
++        return lambda version, low=target: version == low
++    if operator == ">":
++        return lambda version, low=target: version > low
++    if operator == ">=":
++        return lambda version, low=target: version >= low
++    if operator == "<":
++        return lambda version, high=target: version < high
++    if operator == "<=":
++        return lambda version, high=target: version <= high
++    if operator == "^":
++        upper = _caret_upper(target)
++    elif operator == "~":
++        upper = (target[0], target[1] + 1, 0)
++    else:  # pragma: no cover - _OPERATORS covers every reachable case
++        raise ValueError("unknown operator: %r" % (token,))
++    return lambda version, low=target, high=upper: low <= version < high
++
+ 
+ def satisfies(version: str, spec: str) -> bool:
+-    raise NotImplementedError
++    parsed = _full(version)
++
++    if not isinstance(spec, str):
++        raise ValueError("malformed spec: %r" % (spec,))
++
++    # Parse every alternative first so that a malformed one always raises,
++    # even when an earlier alternative would already have matched.
++    alternatives = []
++    for alternative in spec.split("||"):
++        tokens = alternative.split()
++        if not tokens:
++            raise ValueError("empty alternative in spec: %r" % (spec,))
++        alternatives.append([_comparator(token) for token in tokens])
++
++    return any(all(check(parsed) for check in checks) for checks in alternatives)
+ 

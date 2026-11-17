@@ -1,0 +1,40 @@
+diff --git a/solution.py b/solution.py
+index 679a5aae5cb88e1bffb125ddd3c0c1bd67789d5b..f85b095de7d88326fb6819465bce6b8b225b759e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,34 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def allocate(total: int, weights: list) -> list:
+-    raise NotImplementedError
++    if isinstance(total, bool) or not isinstance(total, int):
++        raise TypeError("total must be an int")
++    weights = list(weights)
++    for weight in weights:
++        if isinstance(weight, bool) or not isinstance(weight, int):
++            raise TypeError("weights must be ints")
++    if not weights:
++        raise ValueError("weights must not be empty")
++    if any(weight < 0 for weight in weights):
++        raise ValueError("weights must be non-negative")
++    weight_total = sum(weights)
++    if weight_total == 0:
++        raise ValueError("at least one weight must be positive")
++
++    sign = -1 if total < 0 else 1
++    magnitude = abs(total)
++
++    parts = []
++    remainders = []
++    for weight in weights:
++        share = magnitude * weight
++        parts.append(share // weight_total)
++        remainders.append(share % weight_total)
++
++    leftover = magnitude - sum(parts)
++    # Largest remainders first; ties go to the earlier position.
++    order = sorted(range(len(weights)), key=lambda i: (-remainders[i], i))
++    for index in order[:leftover]:
++        parts[index] += 1
++
++    return [sign * part for part in parts]
+ 

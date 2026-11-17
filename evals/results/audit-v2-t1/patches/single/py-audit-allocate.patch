@@ -1,0 +1,42 @@
+diff --git a/solution.py b/solution.py
+index b1a5a18950b492f18926dc99d8a806fb70466876..83cdd351cc2b4fcd1afa31ffb49004449d49f9f6 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,12 +1,17 @@
+ """Largest-remainder allocation of an integer amount."""
+ 
+ 
++def _is_int(value) -> bool:
++    """True for real ints only; bool is rejected as specified."""
++    return isinstance(value, int) and not isinstance(value, bool)
++
++
+ def allocate(total: int, weights: list) -> list:
+-    if not isinstance(total, int):
++    if not _is_int(total):
+         raise TypeError("total must be an int")
+     weights = list(weights)
+     for weight in weights:
+-        if isinstance(weight, bool) or not isinstance(weight, int):
++        if not _is_int(weight):
+             raise TypeError("weights must be ints")
+     if not weights:
+         raise ValueError("weights must not be empty")
+@@ -14,11 +19,14 @@ def allocate(total: int, weights: list) -> list:
+         raise ValueError("weights must not be negative")
+     scale = sum(weights)
+     if scale == 0:
+-        return [0] * len(weights)
++        raise ValueError("weights must not all be zero")
+     amount = abs(total)
+     parts = [amount * weight // scale for weight in weights]
+     remainders = [amount * weight % scale for weight in weights]
+-    order = sorted(range(len(weights)), key=lambda index: (-remainders[index], -index))
+-    for index in order[: amount - sum(parts)]:
++    leftover = amount - sum(parts)
++    order = sorted(range(len(weights)), key=lambda index: (-remainders[index], index))
++    for index in order[:leftover]:
+         parts[index] += 1
++    if total < 0:
++        parts = [-part for part in parts]
+     return parts

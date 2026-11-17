@@ -1,0 +1,30 @@
+diff --git a/solution.py b/solution.py
+index 3b576f71a92c745fd2279a7fafb5b7fbf8b2dc13..6a85c9d93b4ea0c3faa0dc931306d2455a875622 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,24 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def parse_ini(text: str) -> dict:
+-    raise NotImplementedError
++    """Parse a small INI-style configuration.
++
++    Returns ``{section_name: {key: value}}``.  Keys appearing before the first
++    section header are stored under the "" section.
++    """
++    result = {}
++    current = ""
++    for raw_line in text.splitlines():
++        line = raw_line.strip()
++        if not line or line[0] in "#;":
++            continue
++        if line.startswith("[") and line.endswith("]"):
++            current = line[1:-1].strip()
++            result.setdefault(current, {})
++            continue
++        if "=" in line:
++            key, _, value = line.partition("=")
++            result.setdefault(current, {})[key.strip()] = value.strip()
++            continue
++        raise ValueError("invalid INI line: %r" % raw_line)
++    return result
+ 

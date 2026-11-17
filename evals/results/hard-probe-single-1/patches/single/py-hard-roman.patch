@@ -1,0 +1,56 @@
+diff --git a/solution.py b/solution.py
+index 05686a0eb6e93d684c47bb1f24a5d3bbaa0cf425..7a83036d37c736eb5824212d3b0ccd4326410275 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,48 @@
+-"""Implement the functions declared below; keep the signatures unchanged."""
++"""Roman numeral conversion helpers (canonical, subtractive notation)."""
++
++_VALUES = (
++    (1000, "M"),
++    (900, "CM"),
++    (500, "D"),
++    (400, "CD"),
++    (100, "C"),
++    (90, "XC"),
++    (50, "L"),
++    (40, "XL"),
++    (10, "X"),
++    (9, "IX"),
++    (5, "V"),
++    (4, "IV"),
++    (1, "I"),
++)
++
++
+ def to_roman(number: int) -> str:
+-    raise NotImplementedError
++    """Convert an int in 1..3999 to its canonical upper-case Roman numeral."""
++    if isinstance(number, bool) or not isinstance(number, int):
++        raise TypeError("number must be an int")
++    if not 1 <= number <= 3999:
++        raise ValueError("number must be between 1 and 3999")
++
++    parts = []
++    remaining = number
++    for value, glyph in _VALUES:
++        count, remaining = divmod(remaining, value)
++        if count:
++            parts.append(glyph * count)
++    return "".join(parts)
++
++
++# Every string to_roman can produce, mapped back to its value.
++_ROMAN_TO_INT = {to_roman(n): n for n in range(1, 4000)}
++
+ 
+ def from_roman(text: str) -> int:
+-    raise NotImplementedError
++    """Convert a canonical Roman numeral produced by to_roman back to an int."""
++    if not isinstance(text, str):
++        raise TypeError("text must be a str")
++    try:
++        return _ROMAN_TO_INT[text]
++    except KeyError:
++        raise ValueError("not a canonical Roman numeral: %r" % (text,)) from None
+ 

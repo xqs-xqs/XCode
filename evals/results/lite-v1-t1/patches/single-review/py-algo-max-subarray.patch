@@ -1,0 +1,24 @@
+diff --git a/solution.py b/solution.py
+index 70b522fafa912f1c8d6687cb2121380bc3314db8..d8595b3bd9f6f36c9ae3b957ed071a58f9afbab3 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,18 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def max_subarray_sum(values: list) -> int:
+-    raise NotImplementedError
++    """Return the largest sum of a non-empty contiguous subarray of values.
++
++    Runs in a single linear pass (Kadane's algorithm) and uses O(1) extra
++    space. Raises ValueError when values is empty.
++    """
++    if not values:
++        raise ValueError("max_subarray_sum() requires a non-empty sequence")
++
++    best = current = values[0]
++    for value in values[1:]:
++        # Either extend the running subarray or start fresh at value.
++        current = value if current < 0 else current + value
++        if current > best:
++            best = current
++    return best
+ 

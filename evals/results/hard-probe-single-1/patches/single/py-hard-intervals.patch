@@ -1,0 +1,96 @@
+diff --git a/solution.py b/solution.py
+index b32f4cb043fb34673ae9988c47c533b931d47ad8..653222d5ae4fb4b1e3da124568425fbd3e77c5e4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,90 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++
+ class IntervalSet:
+-    pass
++    """A set of integers kept as sorted, disjoint, non-touching half-open intervals.
++
++    Invariant for ``self._intervals``: a list of ``(start, end)`` tuples with
++    ``start < end``, sorted by ``start``, where consecutive intervals never
++    overlap and never touch (``end`` of one is strictly less than ``start`` of
++    the next).  Because every interval is maximal, the list is unique for a
++    given content.
++    """
++
++    def __init__(self):
++        self._intervals = []
++
++    def add(self, start, end):
++        """Insert every integer in ``[start, end)``."""
++        if start > end:
++            raise ValueError("start must not be greater than end")
++        if start == end:
++            return
++
++        merged = []
++        inserted = False
++        for cur_start, cur_end in self._intervals:
++            if cur_end < start:
++                # Strictly before the new interval: keep as is.
++                merged.append((cur_start, cur_end))
++            elif end < cur_start:
++                # Strictly after the new interval: put it here, once.
++                if not inserted:
++                    merged.append((start, end))
++                    inserted = True
++                merged.append((cur_start, cur_end))
++            else:
++                # Overlapping or touching: absorb into the interval being added.
++                start = min(start, cur_start)
++                end = max(end, cur_end)
++        if not inserted:
++            merged.append((start, end))
++
++        self._intervals = merged
++
++    def remove(self, start, end):
++        """Delete every integer in ``[start, end)``."""
++        if start > end:
++            raise ValueError("start must not be greater than end")
++        if start == end:
++            return
++
++        remaining = []
++        for cur_start, cur_end in self._intervals:
++            if cur_end <= start or cur_start >= end:
++                # No overlap with the removed range.
++                remaining.append((cur_start, cur_end))
++                continue
++            # Keep the part before the removed range ...
++            if cur_start < start:
++                remaining.append((cur_start, start))
++            # ... and the part after it (this is what splits an interval).
++            if cur_end > end:
++                remaining.append((end, cur_end))
++
++        self._intervals = remaining
++
++    def contains(self, value):
++        """Return whether ``value`` is stored."""
++        low, high = 0, len(self._intervals)
++        while low < high:
++            middle = (low + high) // 2
++            cur_start, cur_end = self._intervals[middle]
++            if value < cur_start:
++                high = middle
++            elif value >= cur_end:
++                low = middle + 1
++            else:
++                return True
++        return False
++
++    def intervals(self):
++        """Return the content as sorted ``(start, end)`` tuples."""
++        return list(self._intervals)
++
++    def __len__(self):
++        return sum(end - start for start, end in self._intervals)
++
++    def __repr__(self):
++        return "IntervalSet({!r})".format(self.intervals())
+ 

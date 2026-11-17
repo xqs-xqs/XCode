@@ -1,0 +1,21 @@
+diff --git a/solution.py b/solution.py
+index 74816afd795ca56a9b6ffe16dd05ccb60a201aee..6d736cab05df90c773f1045dd0ad35b6284803ad 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,14 @@
+ """Append helpers that accumulate state across calls."""
+ 
+ 
+-def collect(items, target=[]):
+-    """Append the items that are not already present and return the target list."""
++def collect(items, target=None):
++    """Append the items that are not already present and return the target list.
++
++    A fresh list is created per call when no target is supplied, so results never
++    leak between calls. An explicitly supplied target list is appended to in place.
++    """
++    if target is None:
++        target = []
+     for item in items:
+         if item not in target:
+             target.append(item)

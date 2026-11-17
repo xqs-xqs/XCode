@@ -1,0 +1,233 @@
+{
+  "settings": {
+    "run_id": "weak-glm-5.3-flash-single-1",
+    "label": "audit, single, developer glm-5.3-flash",
+    "binary_sha256": "d84ffe3f9d8a66c98763d5ddad2992e60d00b1e92428d51f30b649e0e2cc3dd0",
+    "git_revision": "cf6d8b315e04f1f873eb1b62449fc009a9b22656",
+    "developer": "bailian/glm-5.3-flash",
+    "reviewer": "glm/glm-5.3",
+    "cells": {
+      "single": {
+        "total": 12,
+        "resolved": 11,
+        "errors": 0,
+        "by_kind": {
+          "audit": {
+            "total": 12,
+            "resolved": 11
+          }
+        },
+        "by_language": {
+          "python": {
+            "total": 12,
+            "resolved": 11
+          }
+        }
+      }
+    },
+    "max_tokens": 200000,
+    "max_model_calls": 60,
+    "max_steps": 40,
+    "timeout_sec": 900,
+    "thinking": "enabled",
+    "reasoning_effort": "high",
+    "provider_retries": 2,
+    "generated_at": "2026-11-16T16:53:44.612560+00:00"
+  },
+  "cells": {
+    "single": [
+      {
+        "id": "py-audit-allocate",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 68281,
+        "calls": 13,
+        "wall": 302.2,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-duration",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 29308,
+        "calls": 7,
+        "wall": 153.8,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-expr",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 47572,
+        "calls": 10,
+        "wall": 315.4,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-intervals",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 45155,
+        "calls": 10,
+        "wall": 153.1,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-order",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 46465,
+        "calls": 7,
+        "wall": 301.2,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-ranges",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 57642,
+        "calls": 11,
+        "wall": 764.6,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-roman",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 40197,
+        "calls": 9,
+        "wall": 321.2,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-round",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 51238,
+        "calls": 10,
+        "wall": 376.0,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-semver",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 60289,
+        "calls": 10,
+        "wall": 531.8,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-table",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 63554,
+        "calls": 13,
+        "wall": 284.2,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-template",
+        "resolved": false,
+        "grade_status": "failed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 1357,
+        "calls": 2,
+        "wall": 227.0,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-audit-wrap",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 90136,
+        "calls": 16,
+        "wall": 236.4,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      }
+    ]
+  }
+}

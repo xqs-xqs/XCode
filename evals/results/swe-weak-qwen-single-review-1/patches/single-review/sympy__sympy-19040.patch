@@ -1,0 +1,93 @@
+diff --git a/scratch_dbg2.py b/scratch_dbg2.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e9c3719f9600a108b69862516b66a7b978ab2185
+--- /dev/null
++++ b/scratch_dbg2.py
+@@ -0,0 +1,64 @@
++import sympy.polys.factortools as ft
++import sympy.polys.polytools as pt
++from sympy import expand, symbols
++
++x, y = symbols('x y')
++
++orig_ext = ft.dmp_ext_factor
++orig_inc = ft.dmp_factor_list_include
++
++
++def show(g, u, K):
++    from sympy.polys.densebasic import dmp_to_dict
++    from sympy.polys.polyerrors import CoercionFailed
++    try:
++        d = dmp_to_dict(g, u, K)
++    except CoercionFailed:
++        d = dmp_to_dict(g, u, K.dom)
++    if u:
++        return {(k[0],): v for k, v in d.items()}
++    return d
++
++
++def depth():
++    return len([1 for fr in __import__('traceback').extract_stack()
++                if fr[2] == 'pext'])
++
++
++def pext(f, u, K):
++    ind = '  ' * depth()
++    if not u:
++        return orig_ext(f, u, K)
++    lc = ft.dmp_ground_LC(f, u, K)
++    f = ft.dmp_ground_monic(f, u, K)
++    if all(d <= 0 for d in ft.dmp_degree_list(f, u)):
++        print(ind + 'EXIT const')
++        return lc, []
++    f, F = ft.dmp_sqf_part(f, u, K), f
++    s, g, r = ft.dmp_sqf_norm(f, u, K)
++    print(ind + 'IN K=%s u=%d f=%s s=%s unit=%s' % (K, u, show(f, u, K), s, K.unit))
++    print(ind + '   norm r=', show(r, u, K.dom))
++    factors = orig_inc(r, u, K.dom)
++    print(ind + '   norm factors=', [(show(a, u, K.dom), e) for a, e in factors])
++    if len(factors) == 1:
++        print(ind + '   BRANCH single -> factors=[f]')
++        factors = [f]
++    else:
++        H = ft.dmp_raise([K.one, s * K.unit], u, 0, K)
++        for i, (factor, _) in enumerate(factors):
++            h = ft.dmp_convert(factor, u, K.dom, K)
++            h, _, g = ft.dmp_inner_gcd(h, g, u, K)
++            before = show(h, u, K)
++            h = ft.dmp_compose(h, H, u, K)
++            factors[i] = h
++            print(ind + '   cand %s -> %s' % (before, show(h, u, K)))
++    res = ft.dmp_trial_division(F, factors, u, K)
++    print(ind + 'OUT', [(show(a, u, K), e) for a, e in res])
++    return lc, res
++
++
++ft.dmp_ext_factor = pext
++
++for expr in [expand((x - 1) * (y - 1)), expand((x - 2) * (y - 3)), x * y - 1]:
++    print('>>>', expr)
++    print(pt.factor(expr, extension=True))
+diff --git a/scratch_dbg3.py b/scratch_dbg3.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e7676bbb14f0c4c95a3ccf0dd01b6e601b154791
+--- /dev/null
++++ b/scratch_dbg3.py
+@@ -0,0 +1,17 @@
++import sympy.polys.factortools as ft
++import sympy.polys.polytools as pt
++from sympy import expand, symbols
++
++x, y = symbols('x y')
++orig = ft.dmp_ext_factor
++
++
++def w(f, u, K):
++    print('EXT u=%s K=%s' % (u, K))
++    r = orig(f, u, K)
++    print('   -> %d factors' % len(r[1]))
++    return r
++
++
++ft.dmp_ext_factor = w
++print(pt.factor(expand((x - 1) * (y - 1)), extension=True))

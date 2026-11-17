@@ -1,0 +1,38 @@
+diff --git a/solution.py b/solution.py
+index 264da361d519d277c0c9d71c4635abbb4515f25f..185ad86a206fa9c3c75bef8fed4b1af066229464 100644
+--- a/solution.py
++++ b/solution.py
+@@ -3,7 +3,7 @@
+ import re
+ 
+ _UNITS = [("w", 604800), ("d", 86400), ("h", 3600), ("m", 60), ("s", 1)]
+-_PART = re.compile(r"([0-9]+)([a-zA-Z])")
++_PART = re.compile(r"([0-9]+)([a-z])")
+ 
+ 
+ def parse_duration(text: str) -> int:
+@@ -14,8 +14,8 @@ def parse_duration(text: str) -> int:
+         match = _PART.match(text, position)
+         if match is None:
+             raise ValueError(f"malformed duration {text!r}")
+-        index = next((i for i, (unit, _) in enumerate(_UNITS) if unit == match.group(2).lower()), None)
+-        if index is None:
++        index = next((i for i, (unit, _) in enumerate(_UNITS) if unit == match.group(2)), None)
++        if index is None or index < next_unit:
+             raise ValueError(f"malformed duration {text!r}")
+         total += int(match.group(1)) * _UNITS[index][1]
+         next_unit = index + 1
+@@ -24,10 +24,12 @@ def parse_duration(text: str) -> int:
+ 
+ 
+ def format_duration(seconds: int) -> str:
+-    if not isinstance(seconds, int):
++    if isinstance(seconds, bool) or not isinstance(seconds, int):
+         raise TypeError("seconds must be an int")
+     if seconds < 0:
+         raise ValueError("seconds must not be negative")
++    if seconds == 0:
++        return "0s"
+     parts = []
+     for unit, size in _UNITS:
+         count, seconds = divmod(seconds, size)

@@ -1,0 +1,59 @@
+diff --git a/sympy/printing/repr.py b/sympy/printing/repr.py
+index c936a692c0cd21aee699da96d56f5d2bd63d4acf..ba0457551943f252bc9edef7a618dcb3b67c9a5c 100644
+--- a/sympy/printing/repr.py
++++ b/sympy/printing/repr.py
+@@ -144,6 +144,54 @@ def _print_EmptySequence(self, expr):
+     def _print_list(self, expr):
+         return "[%s]" % self.reprify(expr, ", ")
+ 
++    def _print_dict(self, expr):
++        """Return a dict as a dict literal of srepr'd key/value pairs.
++
++        Examples
++        ========
++
++        >>> from sympy.printing.repr import srepr
++        >>> from sympy.abc import x
++        >>> srepr({x: 1})
++        "{Symbol('x'): 1}"
++        """
++        # dicts keep their insertion order so no sorting is needed
++        items = ['%s: %s' % (self._print(k), self._print(v))
++                 for k, v in expr.items()]
++        return "{%s}" % ', '.join(items)
++
++    def _print_set(self, expr):
++        """Return a set as a set literal of srepr'd elements.
++
++        Examples
++        ========
++
++        >>> from sympy.printing.repr import srepr
++        >>> from sympy.abc import x
++        >>> srepr({x})
++        "{Symbol('x')}"
++        """
++        if not expr:
++            return 'set()'
++        # sets are unordered so the elements are sorted to get a
++        # deterministic representation
++        return "{%s}" % self.reprify(sorted(expr), ', ')
++
++    def _print_frozenset(self, expr):
++        """Return a frozenset as an equivalent Python expression.
++
++        Examples
++        ========
++
++        >>> from sympy.printing.repr import srepr
++        >>> from sympy.abc import x
++        >>> srepr(frozenset([x]))
++        "FiniteSet(Symbol('x'))"
++        """
++        if not expr:
++            return 'FiniteSet()'
++        return "FiniteSet(%s)" % self.reprify(sorted(expr), ', ')
++
+     def _print_MatrixBase(self, expr):
+         # special case for some empty matrices
+         if (expr.rows == 0) ^ (expr.cols == 0):

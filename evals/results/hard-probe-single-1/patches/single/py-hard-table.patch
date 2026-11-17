@@ -1,0 +1,54 @@
+diff --git a/solution.py b/solution.py
+index c90d1ff00b0c26853f0ee6b90588d3e357e7676a..5938243af2a50b3e31a58d7632701b8ed805f9f4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,10 +1,46 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def _text(cell) -> str:
+-    raise NotImplementedError
++    if cell is None:
++        return ""
++    if isinstance(cell, bool):
++        return "yes" if cell else "no"
++    if isinstance(cell, int):
++        return str(cell)
++    if isinstance(cell, float):
++        return f"{cell:.2f}"
++    return str(cell)
+ 
+ def _numeric(cell) -> bool:
+-    raise NotImplementedError
++    return isinstance(cell, (int, float)) and not isinstance(cell, bool)
+ 
+ def format_table(headers: list, rows: list) -> str:
+-    raise NotImplementedError
++    if not headers:
++        raise ValueError("headers must not be empty")
++
++    width = len(headers)
++    normalised = []
++    for row in rows:
++        row = list(row)
++        if len(row) > width:
++            raise ValueError("row has more cells than headers")
++        if len(row) < width:
++            row.extend([None] * (width - len(row)))
++        normalised.append(row)
++
++    widths = [len(headers[i]) for i in range(width)]
++    for row in normalised:
++        for i, cell in enumerate(row):
++            widths[i] = max(widths[i], len(_text(cell)))
++
++    def cell_text(cell, i):
++        text = _text(cell)
++        if _numeric(cell):
++            return text.rjust(widths[i])
++        return text.ljust(widths[i])
++
++    lines = ["  ".join(cell_text(h, i) for i, h in enumerate(headers)).rstrip()]
++    lines.append("  ".join("-" * w for w in widths).rstrip())
++    for row in normalised:
++        lines.append("  ".join(cell_text(c, i) for i, c in enumerate(row)).rstrip())
++    return "\n".join(lines)
+ 

@@ -1,0 +1,17 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 3a72ab606c89b2ba6c2efd72fd216aaa9fdf5396..b9a8278dd924049952fb9719e15e0f3b80c80047 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -218,6 +218,12 @@ def _get_einsum_string(self, subranks, contraction_indices):
+         contraction_string = contraction_string[:-1]
+         return contraction_string, letters_free, letters_dum
+ 
++    def _print_Min(self, expr):
++        return "min({})".format(", ".join(self._print(arg) for arg in expr.args))
++
++    def _print_Max(self, expr):
++        return "max({})".format(", ".join(self._print(arg) for arg in expr.args))
++
+     def _print_NaN(self, expr):
+         return "float('nan')"
+ 

@@ -1,0 +1,39 @@
+diff --git a/solution.go b/solution.go
+index d103553e15d64e0f65341115e8094764b49fcfa4..12b0a7be5d0e14377bd7bab5efe9354d36c03638 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,5 +1,7 @@
+ package solution
+ 
++import "strings"
++
+ // Pair is one run of equal characters.
+ type Pair struct {
+ 	Rune  rune
+@@ -8,10 +10,24 @@ type Pair struct {
+ 
+ // Encode folds consecutive equal characters into [rune, count] pairs, in order.
+ func Encode(text string) []Pair {
+-	panic("not implemented")
++	pairs := make([]Pair, 0, len(text))
++	for _, r := range text {
++		if last := len(pairs) - 1; last >= 0 && pairs[last].Rune == r {
++			pairs[last].Count++
++			continue
++		}
++		pairs = append(pairs, Pair{Rune: r, Count: 1})
++	}
++	return pairs
+ }
+ 
+ // Decode rebuilds the original string from run-length pairs.
+ func Decode(pairs []Pair) string {
+-	panic("not implemented")
++	var builder strings.Builder
++	for _, pair := range pairs {
++		for count := 0; count < pair.Count; count++ {
++			builder.WriteRune(pair.Rune)
++		}
++	}
++	return builder.String()
+ }

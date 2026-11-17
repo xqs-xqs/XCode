@@ -1,0 +1,130 @@
+diff --git a/solution.py b/solution.py
+index 21af57e53498db46a410a1cc36abb50e29877939..efd21472e830601df119b9022eecb315ee9facff 100644
+--- a/solution.py
++++ b/solution.py
+@@ -6,10 +6,10 @@ import heapq
+ def install_order(packages: dict) -> list:
+     dependencies = {}
+     for name, needs in packages.items():
+-        for need in needs:
+-            if need not in packages:
+-                raise KeyError(need)
+-        dependencies[name] = set(needs) - {name}
++        missing = [need for need in needs if need not in packages]
++        if missing:
++            raise KeyError(missing[0])
++        dependencies[name] = set(needs)
+ 
+     dependents = {name: [] for name in dependencies}
+     for name, needs in dependencies.items():
+@@ -21,7 +21,7 @@ def install_order(packages: dict) -> list:
+ 
+     order = []
+     while ready:
+-        name = ready.pop()
++        name = heapq.heappop(ready)
+         order.append(name)
+         for dependent in dependents[name]:
+             waiting[dependent] -= 1
+@@ -40,4 +40,4 @@ def install_order(packages: dict) -> list:
+     cycle = path[seen[current]:]
+     start = cycle.index(min(cycle))
+     cycle = cycle[start:] + cycle[:start]
+-    raise ValueError(" -> ".join(cycle))
++    raise ValueError(" -> ".join(cycle + cycle[:1]))
+diff --git a/test_zcheck.py b/test_zcheck.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..fcc4999bb736e86b2c328a3df4088a483f61c6a1
+--- /dev/null
++++ b/test_zcheck.py
+@@ -0,0 +1,45 @@
++import unittest
++
++from solution import install_order
++
++
++class T(unittest.TestCase):
++    def test_all(self):
++        self.assertEqual(install_order({"c": [], "a": [], "b": []}), ["a", "b", "c"])
++        self.assertEqual(install_order({"a": ["b", "c"], "b": ["c"], "c": []}), ["c", "b", "a"])
++        self.assertEqual(install_order({"a": ["b", "b"], "b": []}), ["b", "a"])
++        with self.assertRaises(KeyError):
++            install_order({"a": ["x"]})
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["b"], "b": ["a"]})
++        self.assertEqual(str(cm.exception), "a -> b -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["a"]})
++        self.assertEqual(str(cm.exception), "a -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"c": ["a"], "b": ["c"], "a": ["b"]})
++        self.assertEqual(str(cm.exception), "a -> b -> c -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"z": ["y"], "y": ["z"], "q": []})
++        self.assertEqual(str(cm.exception), "y -> z -> y")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"d": ["e"], "e": ["f"], "f": ["e"]})
++        self.assertEqual(str(cm.exception), "e -> f -> e")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["b"], "b": ["b"]})
++        self.assertEqual(str(cm.exception), "b -> b")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["a"], "b": ["b"]})
++        self.assertEqual(str(cm.exception), "a -> a")
++        d = {"a": ["b"], "b": []}
++        install_order(d)
++        self.assertEqual(d, {"a": ["b"], "b": []})
++        self.assertEqual(
++            install_order({"a": [], "b": ["a"], "c": ["a"], "d": ["b", "c"], "e": []}),
++            ["a", "b", "c", "d", "e"],
++        )
++        self.assertEqual(install_order({}), [])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/zcheck.py b/zcheck.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cdb15b19797961d7d1c6d13ada777ccb75bc90cc
+--- /dev/null
++++ b/zcheck.py
+@@ -0,0 +1,39 @@
++import unittest
++
++from solution import install_order
++
++
++class T(unittest.TestCase):
++    def test_all(self):
++        self.assertEqual(install_order({"c": [], "a": [], "b": []}), ["a", "b", "c"])
++        self.assertEqual(install_order({"a": ["b", "c"], "b": ["c"], "c": []}), ["c", "b", "a"])
++        self.assertEqual(install_order({"a": ["b", "b"], "b": []}), ["b", "a"])
++        with self.assertRaises(KeyError):
++            install_order({"a": ["x"], "x": []})
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["b"], "b": ["a"]})
++        self.assertEqual(str(cm.exception), "a -> b -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"a": ["a"]})
++        self.assertEqual(str(cm.exception), "a -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"c": ["a"], "b": ["c"], "a": ["b"]})
++        self.assertEqual(str(cm.exception), "a -> b -> c -> a")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"z": ["y"], "y": ["z"], "q": []})
++        self.assertEqual(str(cm.exception), "y -> z -> y")
++        with self.assertRaises(ValueError) as cm:
++            install_order({"d": ["e"], "e": ["f"], "f": ["e"]})
++        self.assertEqual(str(cm.exception), "e -> f -> e")
++        d = {"a": ["b"], "b": []}
++        install_order(d)
++        self.assertEqual(d, {"a": ["b"], "b": []})
++        self.assertEqual(
++            install_order({"a": [], "b": ["a"], "c": ["a"], "d": ["b", "c"], "e": []}),
++            ["a", "e", "b", "c", "d"],
++        )
++        self.assertEqual(install_order({}), [])
++
++
++if __name__ == "__main__":
++    unittest.main()

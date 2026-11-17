@@ -1,0 +1,60 @@
+diff --git a/_adhoc_check.py b/_adhoc_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d08909ff278778569f63999fa1f1d4a851ce0b0a
+--- /dev/null
++++ b/_adhoc_check.py
+@@ -0,0 +1,19 @@
++import unittest
++
++from solution import topological_order as t
++
++
++class AdHoc(unittest.TestCase):
++    def test_adhoc(self):
++        print(t(['a', 'b'], [('b', 'a')]))
++        print(t(['a', 'b'], [('a', 'b'), ('b', 'a')]))
++        print(t(['a'], [('a', 'a')]))
++        print(t(['a', 'b'], []))
++        print(t(['b', 'a'], [('a', 'b'), ('b', 'a'), ('a', 'c')]) if False else '')
++
++        print(t(['a', 'a'], []))
++        print(t(['a', 'b'], [('a', 'b'), ('a', 'b')]))
++        try:
++            print(t(['a'], [('a', 'z')]))
++        except ValueError as e:
++            print('ValueError:', e)
+diff --git a/solution.py b/solution.py
+index c15f321d6632d4e1c64962542ef537ae3670aa82..24af0e674958782361f223d73e95df70ee5de720 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,29 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import heapq
++
++
+ def topological_order(nodes: list, edges: list):
+-    raise NotImplementedError
++    node_set = set(nodes)
++    for edge in edges:
++        src, dst = edge
++        if src not in node_set or dst not in node_set:
++            raise ValueError(f"edge {edge!r} references unknown node")
++
++    adj = {v: [] for v in node_set}
++    indeg = {v: 0 for v in node_set}
++    for src, dst in set(edges):
++        adj[src].append(dst)
++        indeg[dst] += 1
++
++    heap = [v for v in node_set if indeg[v] == 0]
++    heapq.heapify(heap)
++    order = []
++    while heap:
++        v = heapq.heappop(heap)
++        order.append(v)
++        for w in adj[v]:
++            indeg[w] -= 1
++            if indeg[w] == 0:
++                heapq.heappush(heap, w)
++    return order if len(order) == len(node_set) else None
+ 

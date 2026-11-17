@@ -1,0 +1,97 @@
+diff --git a/solution.go b/solution.go
+index 3507b0ba8185767987c26150e9b83ba36159f5e2..95dbe1236a436a818f3428c40c9dd0ede0934f40 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,13 +1,90 @@
+ package solution
+ 
+-import "errors"
++import (
++	"container/heap"
++	"errors"
++	"fmt"
++	"sort"
++)
+ 
+ // ErrCycle is returned when the graph contains a cycle.
+ var ErrCycle = errors.New("graph contains a cycle")
+ 
++// stringHeap is a min-heap of node names, used to pick the alphabetically
++// smallest node available at each step.
++type stringHeap []string
++
++func (h stringHeap) Len() int           { return len(h) }
++func (h stringHeap) Less(i, j int) bool { return h[i] < h[j] }
++func (h stringHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
++
++func (h *stringHeap) Push(x any) { *h = append(*h, x.(string)) }
++
++func (h *stringHeap) Pop() any {
++	old := *h
++	n := len(old)
++	x := old[n-1]
++	*h = old[:n-1]
++	return x
++}
++
+ // TopoOrder orders every node so each edge points forward, breaking ties by the
+ // alphabetically smaller name. It returns ErrCycle for a cyclic graph and an
+ // error naming the node when an edge references an unknown node.
+ func TopoOrder(nodes []string, edges [][2]string) ([]string, error) {
+-	panic("not implemented")
++	// Treat nodes as a set: report each distinct name exactly once.
++	indegree := make(map[string]int, len(nodes))
++	for _, n := range nodes {
++		indegree[n] = 0
++	}
++
++	// Reject edges touching unknown nodes before doing any ordering work.
++	for _, e := range edges {
++		for _, n := range e {
++			if _, ok := indegree[n]; !ok {
++				return nil, fmt.Errorf("edge references unknown node %q", n)
++			}
++		}
++	}
++
++	// Build the adjacency list, collapsing duplicate edges so indegrees stay
++	// consistent with the successors we will decrement later.
++	successors := make(map[string][]string, len(indegree))
++	seen := make(map[[2]string]struct{}, len(edges))
++	for _, e := range edges {
++		if _, dup := seen[e]; dup {
++			continue
++		}
++		seen[e] = struct{}{}
++		successors[e[0]] = append(successors[e[0]], e[1])
++		indegree[e[1]]++
++	}
++	for n := range successors {
++		sort.Strings(successors[n])
++	}
++
++	ready := make(stringHeap, 0, len(indegree))
++	for n, deg := range indegree {
++		if deg == 0 {
++			ready = append(ready, n)
++		}
++	}
++	heap.Init(&ready)
++
++	order := make([]string, 0, len(indegree))
++	for ready.Len() > 0 {
++		n := heap.Pop(&ready).(string)
++		order = append(order, n)
++		for _, m := range successors[n] {
++			indegree[m]--
++			if indegree[m] == 0 {
++				heap.Push(&ready, m)
++			}
++		}
++	}
++
++	if len(order) != len(indegree) {
++		return nil, ErrCycle
++	}
++	return order, nil
+ }

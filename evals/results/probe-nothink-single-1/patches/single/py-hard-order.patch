@@ -1,0 +1,75 @@
+diff --git a/solution.py b/solution.py
+index c83150569ac4f9fdabd7cccba6c6f66dbf8f30ce..923875609a096e61bbe23db288d7b870bd6b4914 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,69 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import heapq
++
++
++def _find_cycle(nodes, deps):
++    """Return one dependency cycle among ``nodes`` as a list of names."""
++    color = {}
++    for start in sorted(nodes):
++        if color.get(start):
++            continue
++        color[start] = 1
++        path = [start]
++        stack = [(start, iter(sorted(d for d in deps[start] if d in nodes)))]
++        while stack:
++            node, it = stack[-1]
++            advanced = False
++            for nxt in it:
++                state = color.get(nxt, 0)
++                if state == 0:
++                    color[nxt] = 1
++                    path.append(nxt)
++                    stack.append((nxt, iter(sorted(d for d in deps[nxt] if d in nodes))))
++                    advanced = True
++                    break
++                if state == 1:
++                    return path[path.index(nxt):]
++            if not advanced:
++                color[node] = 2
++                stack.pop()
++                path.pop()
++    return []
++
++
+ def install_order(packages: dict) -> list:
+-    raise NotImplementedError
++    deps = {}
++    dependents = {name: set() for name in packages}
++    for name, required in packages.items():
++        unique = set()
++        for dep in required:
++            if dep not in packages:
++                raise KeyError(dep)
++            unique.add(dep)
++        deps[name] = unique
++        for dep in unique:
++            dependents[dep].add(name)
++
++    remaining = {name: len(deps[name]) for name in packages}
++    ready = [name for name, count in remaining.items() if count == 0]
++    heapq.heapify(ready)
++
++    order = []
++    while ready:
++        name = heapq.heappop(ready)
++        order.append(name)
++        for dependent in dependents[name]:
++            remaining[dependent] -= 1
++            if remaining[dependent] == 0:
++                heapq.heappush(ready, dependent)
++
++    if len(order) != len(packages):
++        cycle = _find_cycle(set(packages) - set(order), deps)
++        if cycle:
++            start = cycle.index(min(cycle))
++            cycle = cycle[start:] + cycle[:start]
++            raise ValueError(" -> ".join(cycle + [cycle[0]]))
++        raise ValueError()
++
++    return order
+ 

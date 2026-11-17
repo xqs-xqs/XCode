@@ -1,0 +1,44 @@
+diff --git a/solution.py b/solution.py
+index 53c3019a413d45cc902452826eb8500ace171162..f7461c7d03f2502da950f2f27ebb8905fa88f676 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,38 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def is_balanced(text: str) -> bool:
+-    raise NotImplementedError
++    """Return True if some assignment of '*' to '(' / ')' / '' balances text.
++
++    Tracks the range [low, high] of open-parenthesis counts reachable after
++    each prefix.  A prefix is viable only while high >= 0; low is clamped at 0
++    because the count of open parens can never be negative.  The whole string
++    is balanced iff the range of reachable counts contains 0.
++    """
++    # Validate the whole input first so that an invalid character anywhere in
++    # the text raises, even if an earlier prefix already settles the answer.
++    for ch in text:
++        if ch not in "()*":
++            raise ValueError(f"unexpected character in text: {ch!r}")
++
++    low = high = 0
++    for ch in text:
++        if ch == "(":
++            low += 1
++            high += 1
++        elif ch == ")":
++            low -= 1
++            high -= 1
++        elif ch == "*":
++            # '*' can close (low-1), be nothing (same), or open (high+1).
++            low -= 1
++            high += 1
++        else:
++            raise ValueError(f"unexpected character: {ch!r}")
++
++        if high < 0:
++            # Even using every '*' as '(' leaves an unmatched ')'.
++            return False
++        if low < 0:
++            low = 0
++
++    return low == 0
+ 

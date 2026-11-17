@@ -1,0 +1,15 @@
+diff --git a/dbg_as_set.py b/dbg_as_set.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f23234048d0b0a540d5550ff5449cbdf100f8c2e
+--- /dev/null
++++ b/dbg_as_set.py
+@@ -0,0 +1,9 @@
++import traceback
++from sympy import *
++from sympy.abc import x
++
++try:
++    r = (x**2 + x > 0).as_set()
++    print("OK", r)
++except Exception:
++    traceback.print_exc()

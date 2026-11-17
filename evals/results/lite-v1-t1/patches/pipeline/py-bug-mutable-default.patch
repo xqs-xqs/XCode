@@ -1,0 +1,68 @@
+diff --git a/_tmp_check.py b/_tmp_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..934fb3ac01e20e60662e47510c966fc270130dfe
+--- /dev/null
++++ b/_tmp_check.py
+@@ -0,0 +1,43 @@
++import unittest
++
++from solution import collect
++
++
++class TestInline(unittest.TestCase):
++    def test_inline(self):
++        a = collect([1, 2, 1])
++        b = collect([3])
++        print("a =", a)
++        print("b =", b)
++        print("a is b:", a is b)
++        self.assertEqual(a, [1, 2])
++        self.assertEqual(b, [3])
++        self.assertIs(a is b, False)
++
++        t = []
++        r = collect([1, 2, 1], t)
++        print("t =", t)
++        print("r is t:", r is t)
++        self.assertEqual(t, [1, 2])
++        self.assertIs(r is t, True)
++
++        after = collect([9])
++        print("collect([9]) after:", after)
++        self.assertEqual(after, [9])
++
++
++if __name__ == "__main__":
++    unittest.main()
++
++a = collect([1, 2, 1])
++b = collect([3])
++print("a =", a)
++print("b =", b)
++print("a is b:", a is b)
++
++t = []
++r = collect([1, 2, 1], t)
++print("t =", t)
++print("r is t:", r is t)
++
++print("collect([9]) after:", collect([9]))
+diff --git a/solution.py b/solution.py
+index 74816afd795ca56a9b6ffe16dd05ccb60a201aee..407d5cebbc6b5d6de09ef2b25294aa186e186833 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,13 @@
+ """Append helpers that accumulate state across calls."""
+ 
+ 
+-def collect(items, target=[]):
++_MISSING = object()
++
++
++def collect(items, target=_MISSING):
+     """Append the items that are not already present and return the target list."""
++    if target is _MISSING:
++        target = []
+     for item in items:
+         if item not in target:
+             target.append(item)

@@ -1,0 +1,111 @@
+diff --git a/solution.py b/solution.py
+index d16c53d69aa8b0e157cb554683882c41a47a6195..5cb4a8111daa110239fda6aec50762c07c049ebf 100644
+--- a/solution.py
++++ b/solution.py
+@@ -6,14 +6,14 @@ _ITEM = re.compile(r"\s*(-?[0-9]+)\s*(?:-\s*(-?[0-9]+))?\s*")
+ 
+ 
+ def compress(numbers) -> str:
+-    values = sorted(numbers)
++    values = sorted(set(numbers))
+     items = []
+     index = 0
+     while index < len(values):
+         end = index
+         while end + 1 < len(values) and values[end + 1] == values[end] + 1:
+             end += 1
+-        if end - index >= 1:
++        if end - index >= 2:
+             items.append(f"{values[index]}-{values[end]}")
+         else:
+             items.extend(str(value) for value in values[index:end + 1])
+@@ -22,7 +22,7 @@ def compress(numbers) -> str:
+ 
+ 
+ def expand(text: str) -> list:
+-    if not text:
++    if not text.strip():
+         return []
+     values = set()
+     for item in text.split(","):
+@@ -31,5 +31,7 @@ def expand(text: str) -> list:
+             raise ValueError(f"malformed item {item!r}")
+         first = int(match.group(1))
+         last = first if match.group(2) is None else int(match.group(2))
++        if first > last:
++            raise ValueError(f"descending range {item!r}")
+         values.update(range(first, last + 1))
+     return sorted(values)
+diff --git a/test_solution.py b/test_solution.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b2fd593c39afcf0729f17b514c13f89010ed698
+--- /dev/null
++++ b/test_solution.py
+@@ -0,0 +1,67 @@
++import unittest
++
++from solution import compress, expand
++
++
++class CompressTests(unittest.TestCase):
++    def test_reported_case(self):
++        self.assertEqual(compress([1, 2, 4, 5, 6]), "1,2,4-6")
++
++    def test_dedup(self):
++        self.assertEqual(compress([1, 1, 2, 2, 2, 5]), "1-2,5")
++        self.assertEqual(compress([7, 7, 7]), "7")
++
++    def test_runs_of_two_stay_single(self):
++        self.assertEqual(compress([1, 2, 4]), "1,2,4")
++        self.assertEqual(compress([1, 2]), "1,2")
++
++    def test_iterable_input(self):
++        self.assertEqual(compress(iter([1, 2, 4, 5, 6])), "1,2,4-6")
++        self.assertEqual(compress(x for x in [3, 3, 4]), "3-4")
++
++    def test_unsorted_input(self):
++        self.assertEqual(compress([6, 4, 5, 1, 2]), "1,2,4-6")
++
++    def test_negatives(self):
++        self.assertEqual(compress([-3, -2, -1]), "-3--1")
++        self.assertEqual(compress([-2, -1, 1, 2]), "-2--1,1-2")
++        self.assertEqual(compress([-1, 0, 1]), "-1-1")
++
++    def test_empty_and_single(self):
++        self.assertEqual(compress([]), "")
++        self.assertEqual(compress([5]), "5")
++        self.assertEqual(compress([1, 3, 5]), "1,3,5")
++
++
++class ExpandTests(unittest.TestCase):
++    def test_roundtrip(self):
++        self.assertEqual(expand(compress([-3, -2, -1, 1, 2, 4, 5, 6])), [-3, -2, -1, 1, 2, 4, 5, 6])
++
++    def test_whitespace(self):
++        self.assertEqual(expand(""), [])
++        self.assertEqual(expand("   "), [])
++        self.assertEqual(expand(" 1, 2 , 4 - 6 "), [1, 2, 4, 5, 6])
++        self.assertEqual(expand("1 - 3"), [1, 2, 3])
++
++    def test_lenient_ranges(self):
++        self.assertEqual(expand("4-4"), [4])
++        self.assertEqual(expand("1-2"), [1, 2])
++        self.assertEqual(expand("3-5,1-2"), [1, 2, 3, 4, 5])
++        self.assertEqual(expand("1-3,2"), [1, 2, 3])
++        self.assertEqual(expand("2,1"), [1, 2])
++
++    def test_negative_ranges(self):
++        self.assertEqual(expand("-3--1"), [-3, -2, -1])
++        self.assertEqual(expand(" -3 -- 1 "), [-3, -2, -1])
++        self.assertEqual(expand("-1-1"), [-1, 0, 1])
++
++    def test_errors(self):
++        for bad in ["5-3", "1,,2", ",1", "1,", "x", "1-2-3", "1.5", "1-", "-x",
++                    "1 - -2", "+1", "1e2", ",", "1--", "--1", "1-2 ", " 1 2"]:
++            with self.subTest(bad=bad):
++                with self.assertRaises(ValueError):
++                    expand(bad)
++
++
++if __name__ == "__main__":
++    unittest.main(verbosity=2)

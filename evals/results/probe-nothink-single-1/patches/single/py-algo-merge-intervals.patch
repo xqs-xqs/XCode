@@ -1,0 +1,28 @@
+diff --git a/solution.py b/solution.py
+index 9f9f0aa8b7b04325250a5f401ae6576b5cf13f90..2638e1d409b2fa9200dda9270d66825e49f63d05 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,22 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def merge(intervals: list[list]) -> list[list]:
+-    raise NotImplementedError
++    """Merge overlapping or touching closed integer intervals.
++
++    ``intervals`` is not modified; the merged, sorted list is returned.
++    """
++    if not intervals:
++        return []
++
++    ordered = sorted((list(interval) for interval in intervals), key=lambda pair: (pair[0], pair[1]))
++
++    merged = [list(ordered[0])]
++    for start, end in ordered[1:]:
++        last_start, last_end = merged[-1]
++        # Closed intervals that overlap, or touch at an endpoint (start == last_end), merge.
++        if start <= last_end:
++            if end > last_end:
++                merged[-1][1] = end
++        else:
++            merged.append([start, end])
++    return merged
+ 

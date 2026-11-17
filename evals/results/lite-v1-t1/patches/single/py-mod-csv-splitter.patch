@@ -1,0 +1,56 @@
+diff --git a/solution.py b/solution.py
+index a4e640d12e585a9f05c51942904375f8f8e0ce98..cf0adf080e9c51ac9858b8f7610fb8827d5fc121 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,50 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def split_line(line: str) -> list:
+-    raise NotImplementedError
++    """Split one CSV record into fields.
++
++    Commas separate fields; a double-quoted field may contain commas and
++    doubled quotes (``""`` standing for one literal quote). Empty fields
++    become ``""``. A quoted field that is never closed raises ``ValueError``.
++    """
++    fields = []
++    field = []
++    in_quotes = False
++    i = 0
++    n = len(line)
++
++    while i < n:
++        ch = line[i]
++
++        if in_quotes:
++            if ch == '"':
++                if i + 1 < n and line[i + 1] == '"':
++                    field.append('"')
++                    i += 2
++                    continue
++                in_quotes = False
++                i += 1
++                continue
++            field.append(ch)
++            i += 1
++            continue
++
++        if ch == '"':
++            in_quotes = True
++            i += 1
++            continue
++
++        if ch == ',':
++            fields.append(''.join(field))
++            field = []
++            i += 1
++            continue
++
++        field.append(ch)
++        i += 1
++
++    if in_quotes:
++        raise ValueError("unterminated quoted field")
++
++    fields.append(''.join(field))
++    return fields
+ 

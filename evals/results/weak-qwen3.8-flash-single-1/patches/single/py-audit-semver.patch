@@ -1,0 +1,34 @@
+diff --git a/solution.py b/solution.py
+index af1b7c6f135acfbcfe556e04fe525b97b3dcb71c..9afe227e98a60dae86dfc5d5b85b1893fb5c7b2e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -2,7 +2,7 @@
+ 
+ import re
+ 
+-_NUMBER = r"[0-9]+"
++_NUMBER = r"(?:0|[1-9][0-9]*)"
+ _FULL = re.compile(rf"{_NUMBER}\.{_NUMBER}\.{_NUMBER}")
+ _PARTIAL = re.compile(rf"{_NUMBER}(?:\.{_NUMBER}){{0,2}}")
+ _COMPARATOR = re.compile(r"(>=|<=|>|<|=|\^|~)?(.+)")
+@@ -37,12 +37,17 @@ def _comparator(token):
+     if operator == "<":
+         return lambda version: version < base
+     if operator == "<=":
+-        return lambda version: version < base
++        return lambda version: version <= base
+     if operator == "^":
+         major, minor, patch = base
+-        upper = (major + 1, 0, 0)
++        if major:
++            upper = (major + 1, 0, 0)
++        elif minor:
++            upper = (0, minor + 1, 0)
++        else:
++            upper = (0, 0, patch + 1)
+     else:
+-        upper = (base[0] + 1, 0, 0)
++        upper = (base[0], base[1] + 1, 0)
+     return lambda version: base <= version < upper
+ 
+ 

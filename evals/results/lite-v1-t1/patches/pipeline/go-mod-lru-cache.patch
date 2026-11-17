@@ -1,0 +1,127 @@
+diff --git a/solution.go b/solution.go
+index 383f722bd69d862a4129e21990ccefa3b3f5f81e..c0dfc573d180983a609eefebe1bac828bf9edbfb 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,30 +1,117 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"sync"
++)
+ 
+ // ErrCapacity is returned for a non-positive capacity.
+ var ErrCapacity = errors.New("capacity must be positive")
+ 
++// entry is a node in the recency list.
++type entry struct {
++	key   string
++	value int
++	prev  *entry // toward most recently used
++	next  *entry // toward least recently used
++}
++
+ // LRUCache is a fixed-capacity cache that evicts the least recently used entry.
+ type LRUCache struct {
++	mu       sync.Mutex
++	capacity int
++	items    map[string]*entry
++	head     *entry // most recently used
++	tail     *entry // least recently used
+ }
+ 
+ // NewLRUCache builds a cache holding at most capacity entries.
+ func NewLRUCache(capacity int) (*LRUCache, error) {
+-	panic("not implemented")
++	if capacity <= 0 {
++		return nil, ErrCapacity
++	}
++	return &LRUCache{
++		capacity: capacity,
++		items:    make(map[string]*entry),
++	}, nil
+ }
+ 
+ // Get returns the stored value and whether the key was present.
+ func (c *LRUCache) Get(key string) (int, bool) {
+-	panic("not implemented")
++	c.mu.Lock()
++	defer c.mu.Unlock()
++
++	e, ok := c.items[key]
++	if !ok {
++		return 0, false
++	}
++	c.moveToFront(e)
++	return e.value, true
+ }
+ 
+ // Put stores a value, marking the key most recently used.
+ func (c *LRUCache) Put(key string, value int) {
+-	panic("not implemented")
++	c.mu.Lock()
++	defer c.mu.Unlock()
++
++	if e, ok := c.items[key]; ok {
++		e.value = value
++		c.moveToFront(e)
++		return
++	}
++
++	if len(c.items) >= c.capacity {
++		lru := c.tail
++		c.unlink(lru)
++		delete(c.items, lru.key)
++	}
++
++	e := &entry{key: key, value: value}
++	c.items[key] = e
++	c.pushFront(e)
+ }
+ 
+ // Len reports how many entries are currently stored.
+ func (c *LRUCache) Len() int {
+-	panic("not implemented")
++	c.mu.Lock()
++	defer c.mu.Unlock()
++	return len(c.items)
++}
++
++// unlink removes e from the recency list.
++func (c *LRUCache) unlink(e *entry) {
++	if e.prev != nil {
++		e.prev.next = e.next
++	} else {
++		c.head = e.next
++	}
++	if e.next != nil {
++		e.next.prev = e.prev
++	} else {
++		c.tail = e.prev
++	}
++	e.prev = nil
++	e.next = nil
++}
++
++// pushFront inserts e at the most recently used end of the list.
++func (c *LRUCache) pushFront(e *entry) {
++	e.prev = nil
++	e.next = c.head
++	if c.head != nil {
++		c.head.prev = e
++	}
++	c.head = e
++	if c.tail == nil {
++		c.tail = e
++	}
++}
++
++// moveToFront marks e as the most recently used entry.
++func (c *LRUCache) moveToFront(e *entry) {
++	if c.head == e {
++		return
++	}
++	c.unlink(e)
++	c.pushFront(e)
+ }

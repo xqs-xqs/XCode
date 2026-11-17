@@ -1,0 +1,36 @@
+diff --git a/solution.py b/solution.py
+index 73bb3c445f9bf702bc768389a5a611b55782ae6c..0ed73368bf40cf11310a5b24d8bd9af3481ae34c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,29 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++
+ def _parts(version: str) -> list:
+-    raise NotImplementedError
++    if not isinstance(version, str):
++        raise ValueError("version must be a string")
++    if version[:1] in ("v", "V"):
++        version = version[1:]
++    parts = version.split(".")
++    for part in parts:
++        if not re.fullmatch(r"[0-9]+", part):
++            raise ValueError("non-numeric version component: %r" % (part,))
++    return [int(part) for part in parts]
++
+ 
+ def compare(left: str, right: str) -> int:
+-    raise NotImplementedError
++    left_parts = _parts(left)
++    right_parts = _parts(right)
++    size = max(len(left_parts), len(right_parts))
++    for index in range(size):
++        a = left_parts[index] if index < len(left_parts) else 0
++        b = right_parts[index] if index < len(right_parts) else 0
++        if a < b:
++            return -1
++        if a > b:
++            return 1
++    return 0
+ 

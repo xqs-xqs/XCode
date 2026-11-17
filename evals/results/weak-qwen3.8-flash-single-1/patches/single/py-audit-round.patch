@@ -1,0 +1,31 @@
+diff --git a/solution.py b/solution.py
+index 7021f49f3df24d034e979383d41c3fbf57fdc15b..75e211dc25380e95df5ac7733c4af2dd93561aac 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,9 +1,9 @@
+ """Exact half-even rounding of decimal strings."""
+ 
+ import re
+-from decimal import ROUND_HALF_UP, Decimal, localcontext
++from decimal import ROUND_HALF_EVEN, Decimal, localcontext
+ 
+-_NUMBER = re.compile(r"[-+]?[0-9]+(?:\.[0-9]+)?")
++_NUMBER = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
+ 
+ 
+ def round_decimal(text: str, places: int) -> str:
+@@ -11,7 +11,13 @@ def round_decimal(text: str, places: int) -> str:
+         raise ValueError("places must not be negative")
+     if not isinstance(text, str) or _NUMBER.fullmatch(text) is None:
+         raise ValueError(f"malformed number {text!r}")
++    # Bound the required precision so long inputs are rounded exactly,
++    # independent of the (28 digit) default context precision.
++    unit = Decimal((0, (1,), -places))
+     with localcontext() as context:
+-        value = Decimal(text).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
++        context.prec = len(text) + places + 2
++        value = Decimal(text).quantize(unit, rounding=ROUND_HALF_EVEN)
+     rendered = format(value, "f")
++    if value.is_zero():
++        rendered = rendered.lstrip("-")
+     return rendered

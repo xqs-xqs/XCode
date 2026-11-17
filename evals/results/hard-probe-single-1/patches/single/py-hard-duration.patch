@@ -1,0 +1,63 @@
+diff --git a/solution.py b/solution.py
+index 66e9c4a5ab64f86e84894a1bc98f12db2bc7fc42..0d5fe90a07e9cd59c7ab1f2b0fd09b1d0bac87c8 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,56 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++_PART = re.compile(
++    r"(?:([0-9]+)w)?"
++    r"(?:([0-9]+)d)?"
++    r"(?:([0-9]+)h)?"
++    r"(?:([0-9]+)m)?"
++    r"(?:([0-9]+)s)?"
++)
++
++# Seconds per unit, ordered from the largest unit to the smallest.
++_UNITS = (
++    ("w", 7 * 24 * 60 * 60),
++    ("d", 24 * 60 * 60),
++    ("h", 60 * 60),
++    ("m", 60),
++    ("s", 1),
++)
++
++
+ def parse_duration(text: str) -> int:
+-    raise NotImplementedError
++    """Parse a duration such as "1w2d3h4m5s" into a number of seconds."""
++    if not isinstance(text, str):
++        raise ValueError("duration must be a string")
++    match = _PART.fullmatch(text)
++    if match is None:
++        raise ValueError(f"invalid duration: {text!r}")
++    total = 0
++    seen_part = False
++    for (_, scale), digits in zip(_UNITS, match.groups()):
++        if digits is None:
++            continue
++        seen_part = True
++        total += int(digits) * scale
++    if not seen_part:
++        raise ValueError(f"invalid duration: {text!r}")
++    return total
++
+ 
+ def format_duration(seconds: int) -> str:
+-    raise NotImplementedError
++    """Render a number of seconds in canonical form, e.g. 5400 -> "1h30m"."""
++    if isinstance(seconds, bool) or not isinstance(seconds, int):
++        raise TypeError("seconds must be an int")
++    if seconds < 0:
++        raise ValueError("seconds must not be negative")
++    if seconds == 0:
++        return "0s"
++    parts = []
++    remaining = seconds
++    for name, scale in _UNITS:
++        value, remaining = divmod(remaining, scale)
++        if value:
++            parts.append(f"{value}{name}")
++    return "".join(parts)
+ 

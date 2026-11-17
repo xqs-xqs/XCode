@@ -1,0 +1,83 @@
+diff --git a/solution.py b/solution.py
+index 99e7b3b7a38375840aaa3e932130432297f79334..8e21c5c4ca3044f7f2eb03cd3d76fe30ba4e2d15 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,76 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++# A name segment: letters, digits and underscores, at least one character.
++_SEGMENT = re.compile(r"[A-Za-z0-9_]+\Z")
++
++_FILTERS = {
++    "upper": str.upper,
++    "lower": str.lower,
++    "title": str.title,
++    "trim": str.strip,
++}
++
++
++def _lookup(name: str, values) -> object:
++    """Walk a dotted name through nested dicts."""
++    current = values
++    for segment in name.split("."):
++        if not _SEGMENT.match(segment):
++            raise ValueError("malformed name: %r" % (name,))
++        if not isinstance(current, dict) or segment not in current:
++            raise KeyError(segment)
++        current = current[segment]
++    return current
++
++
+ def _expand(inner: str, values) -> str:
+-    raise NotImplementedError
++    """Render the text between a placeholder's braces."""
++    parts = inner.split("|")
++    name = parts[0].strip()
++    if not name:
++        raise ValueError("empty placeholder")
++
++    filters = []
++    for raw in parts[1:]:
++        filter_name = raw.strip()
++        if not filter_name:
++            raise ValueError("empty filter")
++        if filter_name not in _FILTERS:
++            raise ValueError("unknown filter: %r" % (filter_name,))
++        filters.append(filter_name)
++
++    text = str(_lookup(name, values))
++    for filter_name in filters:
++        text = _FILTERS[filter_name](text)
++    return text
++
+ 
+ def render(template: str, values: dict) -> str:
+-    raise NotImplementedError
++    out = []
++    index = 0
++    length = len(template)
++    while index < length:
++        char = template[index]
++        if char == "{":
++            if template.startswith("{{", index):
++                out.append("{")
++                index += 2
++                continue
++            close = template.find("}", index + 1)
++            if close == -1:
++                raise ValueError("unclosed '{'")
++            out.append(_expand(template[index + 1:close], values))
++            index = close + 1
++        elif char == "}":
++            if template.startswith("}}", index):
++                out.append("}")
++                index += 2
++            else:
++                raise ValueError("lone '}'")
++        else:
++            out.append(char)
++            index += 1
++    return "".join(out)
++
+ 

@@ -1,0 +1,92 @@
+diff --git a/solution.go b/solution.go
+index 383f722bd69d862a4129e21990ccefa3b3f5f81e..ea1767849fefe1972a31cca6695e325885d77231 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,30 +1,82 @@
+ package solution
+ 
+-import "errors"
++import (
++	"container/list"
++	"errors"
++)
+ 
+ // ErrCapacity is returned for a non-positive capacity.
+ var ErrCapacity = errors.New("capacity must be positive")
+ 
++// entry is a single key/value pair stored in the cache.
++type entry struct {
++	key   string
++	value int
++}
++
+ // LRUCache is a fixed-capacity cache that evicts the least recently used entry.
++//
++// Entries are kept in a map for O(1) lookups and in a doubly-linked list
++// ordered from most recently used (front) to least recently used (back).
+ type LRUCache struct {
++	capacity int
++	items    map[string]*list.Element
++	order    *list.List // elements hold *entry
+ }
+ 
+ // NewLRUCache builds a cache holding at most capacity entries.
+ func NewLRUCache(capacity int) (*LRUCache, error) {
+-	panic("not implemented")
++	if capacity <= 0 {
++		return nil, ErrCapacity
++	}
++	return &LRUCache{
++		capacity: capacity,
++		items:    make(map[string]*list.Element, capacity),
++		order:    list.New(),
++	}, nil
+ }
+ 
+ // Get returns the stored value and whether the key was present.
+ func (c *LRUCache) Get(key string) (int, bool) {
+-	panic("not implemented")
++	if c == nil {
++		return 0, false
++	}
++	el, ok := c.items[key]
++	if !ok {
++		return 0, false
++	}
++	c.order.MoveToFront(el)
++	return el.Value.(*entry).value, true
+ }
+ 
+ // Put stores a value, marking the key most recently used.
+ func (c *LRUCache) Put(key string, value int) {
+-	panic("not implemented")
++	if c == nil {
++		return
++	}
++	if el, ok := c.items[key]; ok {
++		e := el.Value.(*entry)
++		e.value = value
++		c.order.MoveToFront(el)
++		return
++	}
++
++	c.items[key] = c.order.PushFront(&entry{key: key, value: value})
++
++	for c.order.Len() > c.capacity {
++		oldest := c.order.Back()
++		if oldest == nil {
++			break
++		}
++		c.order.Remove(oldest)
++		delete(c.items, oldest.Value.(*entry).key)
++	}
+ }
+ 
+ // Len reports how many entries are currently stored.
+ func (c *LRUCache) Len() int {
+-	panic("not implemented")
++	if c == nil {
++		return 0
++	}
++	return len(c.items)
+ }

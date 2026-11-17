@@ -1,0 +1,49 @@
+diff --git a/solution.py b/solution.py
+index c15f321d6632d4e1c64962542ef537ae3670aa82..55e007e72484a2ebd2d85e401e436ab3fad05fbe 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,43 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import heapq
++
++
+ def topological_order(nodes: list, edges: list):
+-    raise NotImplementedError
++    """Kahn's algorithm, breaking ties with the alphabetically smallest node.
++
++    Returns None if the graph contains a cycle (including self-loops) and
++    raises ValueError if an edge references a node not present in ``nodes``.
++    """
++    known = set(nodes)
++    in_degree = {node: 0 for node in known}
++    children = {node: [] for node in known}
++
++    seen_edges = set()
++    for edge in edges:
++        source, target = edge
++        if source not in known:
++            raise ValueError(f"edge references unknown node: {source!r}")
++        if target not in known:
++            raise ValueError(f"edge references unknown node: {target!r}")
++        if (source, target) in seen_edges:
++            continue
++        seen_edges.add((source, target))
++        children[source].append(target)
++        in_degree[target] += 1
++
++    heap = [node for node in known if in_degree[node] == 0]
++    heapq.heapify(heap)
++
++    order = []
++    while heap:
++        node = heapq.heappop(heap)
++        order.append(node)
++        for child in children[node]:
++            in_degree[child] -= 1
++            if in_degree[child] == 0:
++                heapq.heappush(heap, child)
++
++    if len(order) != len(known):
++        return None
++    return order
+ 

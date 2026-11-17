@@ -1,0 +1,12 @@
+diff --git a/sympy/printing/precedence.py b/sympy/printing/precedence.py
+index 47ff463faf3fce278023b4c8019e73c9090e91ef..088029a127fa80851ab022d4d8d5e3602e3d2ff0 100644
+--- a/sympy/printing/precedence.py
++++ b/sympy/printing/precedence.py
+@@ -48,6 +48,7 @@
+     "KroneckerProduct": PRECEDENCE["Mul"],
+     "Equality": PRECEDENCE["Mul"],
+     "Unequality": PRECEDENCE["Mul"],
++    "Mod": PRECEDENCE["Add"],
+ }
+ 
+ # Sometimes it's not enough to assign a fixed precedence value to a

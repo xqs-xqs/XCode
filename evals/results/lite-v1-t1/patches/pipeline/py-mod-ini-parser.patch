@@ -1,0 +1,24 @@
+diff --git a/solution.py b/solution.py
+index 3b576f71a92c745fd2279a7fafb5b7fbf8b2dc13..3c3f008280dca5ee9612d4713017de24a395b3e5 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,18 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def parse_ini(text: str) -> dict:
+-    raise NotImplementedError
++    result: dict = {}
++    current = ""
++    for raw in text.splitlines():
++        line = raw.strip()
++        if not line or line[0] in "#;":
++            continue
++        if line.startswith("[") and line.endswith("]"):
++            current = line[1:-1].strip()
++            result.setdefault(current, {})
++        elif "=" in line:
++            key, _, value = line.partition("=")
++            result.setdefault(current, {})[key.strip()] = value.strip()
++        else:
++            raise ValueError(f"invalid line: {raw!r}")
++    return result
+ 

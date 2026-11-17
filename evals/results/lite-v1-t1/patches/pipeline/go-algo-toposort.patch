@@ -1,0 +1,81 @@
+diff --git a/solution.go b/solution.go
+index 3507b0ba8185767987c26150e9b83ba36159f5e2..ba454d50f9b5deb2e767472e8b3ea9a5d8547e14 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,6 +1,10 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"fmt"
++	"sort"
++)
+ 
+ // ErrCycle is returned when the graph contains a cycle.
+ var ErrCycle = errors.New("graph contains a cycle")
+@@ -9,5 +13,63 @@ var ErrCycle = errors.New("graph contains a cycle")
+ // alphabetically smaller name. It returns ErrCycle for a cyclic graph and an
+ // error naming the node when an edge references an unknown node.
+ func TopoOrder(nodes []string, edges [][2]string) ([]string, error) {
+-	panic("not implemented")
++	known := make(map[string]bool, len(nodes))
++	for _, n := range nodes {
++		known[n] = true
++	}
++
++	// Validate every edge endpoint before building the graph, so an edge naming
++	// an unknown node is reported as such instead of surfacing as ErrCycle.
++	for _, e := range edges {
++		for _, n := range e {
++			if !known[n] {
++				return nil, fmt.Errorf("edge references unknown node %q", n)
++			}
++		}
++	}
++
++	indegree := make(map[string]int, len(known))
++	for n := range known {
++		indegree[n] = 0
++	}
++	adj := make(map[string][]string, len(known))
++	seen := make(map[[2]string]bool, len(edges))
++	for _, e := range edges {
++		if seen[e] {
++			continue // duplicate edge: keep indegree and adjacency in sync
++		}
++		seen[e] = true
++		adj[e[0]] = append(adj[e[0]], e[1])
++		indegree[e[1]]++
++	}
++
++	ready := make([]string, 0, len(known))
++	for n, d := range indegree {
++		if d == 0 {
++			ready = append(ready, n)
++		}
++	}
++	sort.Strings(ready)
++
++	order := make([]string, 0, len(nodes))
++	for len(ready) > 0 {
++		cur := ready[0]
++		ready = ready[1:]
++		order = append(order, cur)
++
++		for _, next := range adj[cur] {
++			indegree[next]--
++			if indegree[next] == 0 {
++				i := sort.SearchStrings(ready, next)
++				ready = append(ready, "")
++				copy(ready[i+1:], ready[i:])
++				ready[i] = next
++			}
++		}
++	}
++
++	if len(order) != len(known) {
++		return nil, ErrCycle
++	}
++	return order, nil
+ }

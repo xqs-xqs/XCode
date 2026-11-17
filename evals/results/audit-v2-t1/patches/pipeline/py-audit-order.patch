@@ -1,0 +1,110 @@
+diff --git a/solution.py b/solution.py
+index 21af57e53498db46a410a1cc36abb50e29877939..33e4eedf044a483429a50429ccee6ea66cf1208f 100644
+--- a/solution.py
++++ b/solution.py
+@@ -9,7 +9,7 @@ def install_order(packages: dict) -> list:
+         for need in needs:
+             if need not in packages:
+                 raise KeyError(need)
+-        dependencies[name] = set(needs) - {name}
++        dependencies[name] = set(needs)
+ 
+     dependents = {name: [] for name in dependencies}
+     for name, needs in dependencies.items():
+@@ -21,7 +21,7 @@ def install_order(packages: dict) -> list:
+ 
+     order = []
+     while ready:
+-        name = ready.pop()
++        name = heapq.heappop(ready)
+         order.append(name)
+         for dependent in dependents[name]:
+             waiting[dependent] -= 1
+@@ -40,4 +40,4 @@ def install_order(packages: dict) -> list:
+     cycle = path[seen[current]:]
+     start = cycle.index(min(cycle))
+     cycle = cycle[start:] + cycle[:start]
+-    raise ValueError(" -> ".join(cycle))
++    raise ValueError(" -> ".join(cycle + [cycle[0]]))
+diff --git a/test_spot_check.py b/test_spot_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..10216f62b02926d24affd0191686033d18c1cc00
+--- /dev/null
++++ b/test_spot_check.py
+@@ -0,0 +1,76 @@
++import copy
++import unittest
++
++from solution import install_order
++
++
++class TestSpotCheck(unittest.TestCase):
++    def test_alphabetical_tie_break(self):
++        self.assertEqual(install_order({"c": [], "a": [], "b": []}), ["a", "b", "c"])
++
++    def test_alphabetical_tie_break_after_release(self):
++        self.assertEqual(
++            install_order({"d": ["b", "c"], "c": ["a"], "b": ["a"], "a": []}),
++            ["a", "b", "c", "d"],
++        )
++
++    def test_self_dependency(self):
++        with self.assertRaises(ValueError) as ctx:
++            install_order({"a": ["a"]})
++        self.assertEqual(str(ctx.exception), "a -> a")
++
++    def test_self_dependency_among_others(self):
++        with self.assertRaises(ValueError) as ctx:
++            install_order({"a": ["a"], "b": [], "z": []})
++        self.assertEqual(str(ctx.exception), "a -> a")
++
++    def test_two_node_cycle(self):
++        with self.assertRaises(ValueError) as ctx:
++            install_order({"b": ["c"], "c": ["b"], "a": []})
++        self.assertEqual(str(ctx.exception), "b -> c -> b")
++
++    def test_three_node_cycle(self):
++        with self.assertRaises(ValueError) as ctx:
++            install_order({"a": ["b"], "b": ["c"], "c": ["a"]})
++        self.assertEqual(str(ctx.exception), "a -> b -> c -> a")
++
++    def test_three_node_cycle_starts_at_smallest(self):
++        with self.assertRaises(ValueError) as ctx:
++            install_order({"y": ["z"], "z": ["x"], "x": ["y"]})
++        self.assertEqual(str(ctx.exception), "x -> y -> z -> x")
++
++    def test_missing_dependency_raises_key_error(self):
++        with self.assertRaises(KeyError):
++            install_order({"a": ["missing"]})
++
++    def test_duplicates_are_harmless(self):
++        self.assertEqual(install_order({"a": ["b", "b"], "b": []}), ["b", "a"])
++
++    def test_input_not_mutated(self):
++        packages = {"c": ["a"], "a": [], "b": ["a", "a"]}
++        snapshot = copy.deepcopy(packages)
++        install_order(packages)
++        self.assertEqual(packages, snapshot)
++
++    def test_input_not_mutated_on_cycle(self):
++        packages = {"a": ["b"], "b": ["a"]}
++        snapshot = copy.deepcopy(packages)
++        with self.assertRaises(ValueError):
++            install_order(packages)
++        self.assertEqual(packages, snapshot)
++
++    def test_result_is_permutation(self):
++        packages = {"a": [], "b": ["a"], "c": ["a", "b"], "d": []}
++        order = install_order(packages)
++        self.assertEqual(sorted(order), ["a", "b", "c", "d"])
++
++    def test_position_respects_dependencies(self):
++        packages = {"app": ["lib"], "lib": ["core"], "core": [], "zz": []}
++        order = install_order(packages)
++        self.assertLess(order.index("core"), order.index("lib"))
++        self.assertLess(order.index("lib"), order.index("app"))
++        self.assertEqual(order[0], "core")
++
++
++if __name__ == "__main__":
++    unittest.main()

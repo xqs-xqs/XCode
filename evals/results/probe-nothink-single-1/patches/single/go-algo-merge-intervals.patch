@@ -1,0 +1,49 @@
+diff --git a/solution.go b/solution.go
+index cf84787a90e913c25adb87b6d680e871d72979c4..9acb1c47614fcc1df33f1e13ea54da61a2816462 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,7 +1,43 @@
+ package solution
+ 
++import "sort"
++
+ // Merge combines overlapping or touching closed intervals and returns them
+ // sorted by start. The input slices must not be modified.
+ func Merge(intervals [][]int) [][]int {
+-	panic("not implemented")
++	// Work on a copy so the caller's outer slice and inner slices stay intact.
++	sorted := make([][]int, 0, len(intervals))
++	for _, iv := range intervals {
++		if len(iv) < 2 {
++			continue
++		}
++		sorted = append(sorted, []int{iv[0], iv[1]})
++	}
++
++	sort.Slice(sorted, func(i, j int) bool {
++		if sorted[i][0] != sorted[j][0] {
++			return sorted[i][0] < sorted[j][0]
++		}
++		return sorted[i][1] < sorted[j][1]
++	})
++
++	merged := make([][]int, 0, len(sorted))
++	for _, iv := range sorted {
++		if n := len(merged); n > 0 {
++			last := merged[n-1]
++			// Overlapping, or touching (gap of exactly one unit). Writing the
++			// touch test as `iv[0] == last[1]+1` avoids any subtraction that
++			// could overflow; when last[1] is MaxInt the first clause already
++			// matched, so the wrapped sum is never consulted.
++			if iv[0] <= last[1] || iv[0] == last[1]+1 {
++				if iv[1] > last[1] {
++					last[1] = iv[1]
++				}
++				continue
++			}
++		}
++		merged = append(merged, []int{iv[0], iv[1]})
++	}
++
++	return merged
+ }

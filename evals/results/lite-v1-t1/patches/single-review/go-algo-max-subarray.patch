@@ -1,0 +1,28 @@
+diff --git a/solution.go b/solution.go
+index 413fa926e7078c8339ada598ea49055a0ece68ce..8ecb2b12194ecfcdb4bbf4de93e40609fd42f559 100644
+--- a/solution.go
++++ b/solution.go
+@@ -7,5 +7,22 @@ var ErrEmpty = errors.New("values must not be empty")
+ 
+ // MaxSubarraySum returns the largest sum of a non-empty contiguous subarray.
+ func MaxSubarraySum(values []int) (int, error) {
+-	panic("not implemented")
++	if len(values) == 0 {
++		return 0, ErrEmpty
++	}
++
++	best := values[0]
++	current := values[0]
++	for _, v := range values[1:] {
++		if current < 0 {
++			current = v
++		} else {
++			current += v
++		}
++		if current > best {
++			best = current
++		}
++	}
++
++	return best, nil
+ }

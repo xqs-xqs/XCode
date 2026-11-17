@@ -1,0 +1,31 @@
+diff --git a/solution.py b/solution.py
+index 25f0e6314e2b74503ed8541eaacc07f5b3568fbf..a9b4233f48de71d024f6466a583b22f57e8af3f1 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,25 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def search(values: list, target: int) -> int:
+-    raise NotImplementedError
++    """Return the index of target in a rotated sorted list, else -1.
++
++    The list holds distinct integers sorted ascending and then rotated by an
++    unknown amount, so at least one of the two halves around the midpoint is
++    always sorted. Binary search discards a half that cannot contain target.
++    """
++    low, high = 0, len(values) - 1
++    while low <= high:
++        mid = (low + high) // 2
++        if values[mid] == target:
++            return mid
++        if values[low] <= values[mid]:  # left half is sorted
++            if values[low] <= target < values[mid]:
++                high = mid - 1
++            else:
++                low = mid + 1
++        else:  # right half is sorted
++            if values[mid] < target <= values[high]:
++                low = mid + 1
++            else:
++                high = mid - 1
++    return -1
+ 

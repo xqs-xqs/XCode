@@ -1,0 +1,79 @@
+diff --git a/solution.py b/solution.py
+index b32f4cb043fb34673ae9988c47c533b931d47ad8..153e1a16fbd4ea0766bd3b6e5f95fcf714522b5c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,73 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ class IntervalSet:
+-    pass
++    """A set of integers stored as sorted, disjoint, non-touching half-open intervals."""
++
++    def __init__(self):
++        # List of (start, end) tuples with start < end, sorted by start,
++        # and no two intervals overlapping or touching.
++        self._intervals = []
++
++    def add(self, start, end):
++        """Insert every integer of the half-open interval [start, end)."""
++        if start > end:
++            raise ValueError("start must not be greater than end")
++        if start == end:
++            return
++
++        before = []
++        after = []
++        for s, e in self._intervals:
++            if e < start:
++                before.append((s, e))
++            elif s > end:
++                after.append((s, e))
++            else:
++                # Overlapping or touching: absorb into the interval being added.
++                start = min(start, s)
++                end = max(end, e)
++
++        self._intervals = before + [(start, end)] + after
++
++    def remove(self, start, end):
++        """Delete every integer of the half-open interval [start, end)."""
++        if start > end:
++            raise ValueError("start must not be greater than end")
++        if start == end:
++            return
++
++        result = []
++        for s, e in self._intervals:
++            if e <= start or s >= end:
++                # Untouched by the removal (touching on either side is kept).
++                result.append((s, e))
++                continue
++            if s < start:
++                result.append((s, start))
++            if e > end:
++                result.append((end, e))
++        self._intervals = result
++
++    def contains(self, value):
++        """Return True if value is stored in the set."""
++        low, high = 0, len(self._intervals)
++        while low < high:
++            mid = (low + high) // 2
++            s, e = self._intervals[mid]
++            if value < s:
++                high = mid
++            elif value >= e:
++                low = mid + 1
++            else:
++                return True
++        return False
++
++    def intervals(self):
++        """Return the stored content as (start, end) tuples sorted by start."""
++        return list(self._intervals)
++
++    def __len__(self):
++        return sum(e - s for s, e in self._intervals)
++
++    def __repr__(self):
++        return "IntervalSet(%r)" % (self._intervals,)
+ 

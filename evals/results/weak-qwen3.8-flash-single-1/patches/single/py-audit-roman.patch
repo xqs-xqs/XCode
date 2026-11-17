@@ -1,0 +1,46 @@
+diff --git a/solution.py b/solution.py
+index a4dc5999b063822f50242cf0b4bcec244af46f12..c69585b31fb545f196ef7f6ecfb8b62b00b0f8f0 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,15 +1,22 @@
+ """Strict Roman numeral conversion."""
+ 
++import re
++
+ _SYMBOLS = [
+     (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+     (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+ ]
+ 
++# Exactly the canonical (subtractive) numerals ``to_roman`` can produce.
++_CANONICAL = re.compile(
++    r"M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})"
++)
++
+ 
+ def to_roman(number: int) -> str:
+-    if not isinstance(number, int):
++    if not isinstance(number, int) or isinstance(number, bool):
+         raise TypeError("number must be an int")
+-    if not 1 <= number <= 4999:
++    if not 1 <= number <= 3999:
+         raise ValueError("number out of range")
+     parts = []
+     for value, symbol in _SYMBOLS:
+@@ -20,13 +27,13 @@ def to_roman(number: int) -> str:
+ 
+ 
+ def from_roman(text: str) -> int:
+-    if not isinstance(text, str) or not text:
+-        raise ValueError("not a Roman numeral")
++    if not isinstance(text, str) or not text or not _CANONICAL.fullmatch(text):
++        raise ValueError(f"not a standard Roman numeral: {text!r}")
+     total, position = 0, 0
+     for value, symbol in _SYMBOLS:
+         while text.startswith(symbol, position):
+             total += value
+             position += len(symbol)
+-    if position != len(text) or not 1 <= total <= 3999:
++    if position != len(text) or not 1 <= total <= 3999 or to_roman(total) != text:
+         raise ValueError(f"not a standard Roman numeral: {text!r}")
+     return total

@@ -1,0 +1,41 @@
+diff --git a/solution.py b/solution.py
+index 8852ffcd0884c76e409592e6671f106b397fb000..f6236824f13b81cf1a4d407168a64e05e576add6 100644
+--- a/solution.py
++++ b/solution.py
+@@ -13,17 +13,23 @@ _FILTERS = {
+ 
+ def _expand(inner: str, values) -> str:
+     name, *filters = inner.split("|")
++    name = name.strip()
++    filters = [filter_name.strip() for filter_name in filters]
+     segments = name.split(".")
+     if any(_SEGMENT.fullmatch(segment) is None for segment in segments):
+         raise ValueError(f"malformed placeholder {inner!r}")
+     for filter_name in filters:
++        if not filter_name:
++            raise ValueError(f"empty filter in placeholder {inner!r}")
+         if filter_name not in _FILTERS:
+             raise ValueError(f"unknown filter {filter_name!r}")
+     current = values
+     for segment in segments:
++        if not isinstance(current, dict):
++            raise KeyError(segment)
+         current = current[segment]
+     text = str(current)
+-    for filter_name in reversed(filters):
++    for filter_name in filters:
+         text = _FILTERS[filter_name](text)
+     return text
+ 
+@@ -46,8 +52,10 @@ def render(template: str, values: dict) -> str:
+             output.append(_expand(inner, values))
+             index = end + 1
+         elif character == "}":
++            if not template.startswith("}}", index):
++                raise ValueError("unexpected '}' outside placeholder")
+             output.append("}")
+-            index += 2 if template.startswith("}}", index) else 1
++            index += 2
+         else:
+             output.append(character)
+             index += 1
