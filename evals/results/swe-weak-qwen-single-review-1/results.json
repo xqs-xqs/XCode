@@ -147,6 +147,54 @@
         "gate_passed": 0,
         "spawned": 0,
         "degraded": 0
+      },
+      {
+        "id": "sympy__sympy-20590",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 428394,
+        "calls": 55,
+        "wall": 1200.0,
+        "blocked_verify": 1,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "sympy__sympy-20801",
+        "resolved": false,
+        "grade_status": "failed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 336816,
+        "calls": 43,
+        "wall": 1021.2,
+        "blocked_verify": 0,
+        "blocked_review": 1,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 1,
+        "degraded": 0
+      },
+      {
+        "id": "sympy__sympy-21379",
+        "resolved": false,
+        "grade_status": "failed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 484314,
+        "calls": 64,
+        "wall": 947.3,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 1,
+        "gate_passed": 0,
+        "spawned": 1,
+        "degraded": 0
       }
     ]
   }

@@ -16,5 +16,5 @@ One row per run and cell. `resolved` is decided by hidden tests on a fresh tree;
 | weak-qwen3.8-flash-single-1 | single | bailian/qwen3.8-flash | glm/glm-5.3 | 12/12 | 12 | 124612 | 1495340 |
 | weak-glm-5.3-flash-single-1 | single | bailian/glm-5.3-flash | glm/glm-5.3 | 11/12 | 10 | 50100 | 601194 |
 | swe-strong-single-1 | single | deepseek/deepseek-v4-flash | glm/glm-5.3 | 13/26 | 25 | 362196 | 9417092 |
-| swe-weak-qwen-single-1 | single | qwen3.8-flash |  | 5/16 | 12 | 364371 | 5829936 |
-| swe-weak-qwen-single-review-1 | single-review | qwen3.8-flash |  | 2/9 | 2 | 406999 | 3662991 |
+| swe-weak-qwen-single-1 | single | qwen3.8-flash |  | 6/20 | 16 | 356550 | 7130993 |
+| swe-weak-qwen-single-review-1 | single-review | qwen3.8-flash |  | 3/12 | 2 | 409376 | 4912515 |
