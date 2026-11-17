@@ -1,0 +1,144 @@
+diff --git a/check_spec.py b/check_spec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..acef766b8953916df97a949028b0e55fdb72b424
+--- /dev/null
++++ b/check_spec.py
+@@ -0,0 +1,43 @@
++from solution import render as r
++
++cases = [
++    ("{ name | upper }", {"name": " a "}, "A"),
++    ("{v|trim|upper}", {"v": " ab "}, "AB"),
++    ("{a.b}", {"a": {"b": 2}}, "2"),
++    ("{{}}", {}, "{}"),
++    ("{{x}}", {}, "{x}"),
++    ("{v|title}", {"v": "ab cd"}, "Ab Cd"),
++    ("{v|upper|lower}", {"v": "Ab"}, "ab"),
++    ("{ v }", {"v": 1}, "1"),
++    ("a}}b", {}, "a}b"),
++]
++for t, v, e in cases:
++    got = r(t, v)
++    assert got == e, (t, got, e)
++
++for t, v in [
++    ("{}", {}),
++    ("{ }", {}),
++    ("{a|}", {"a": 1}),
++    ("{a|  }", {"a": 1}),
++    ("{a|nope}", {"a": 1}),
++    ("{1a}", {}),
++    ("{a.}", {}),
++    ("{a..b}", {"a": {}}),
++    ("{a", {}),
++    ("}", {}),
++    ("{a.b}", {"a": 5}),
++    ("{x}", {}),
++    ("{a.b}", {"a": {}}),
++]:
++    try:
++        r(t, v)
++    except KeyError as ex:
++        print(t, "KeyError")
++        continue
++    except ValueError as ex:
++        print(t, "ValueError")
++        continue
++    raise AssertionError("no raise " + t)
++
++print("all ok")
+diff --git a/solution.py b/solution.py
+index 8852ffcd0884c76e409592e6671f106b397fb000..b677150a0c0a5ce7c2c7fef4b53558d127178bee 100644
+--- a/solution.py
++++ b/solution.py
+@@ -13,17 +13,20 @@ _FILTERS = {
+ 
+ def _expand(inner: str, values) -> str:
+     name, *filters = inner.split("|")
+-    segments = name.split(".")
++    segments = name.strip().split(".")
+     if any(_SEGMENT.fullmatch(segment) is None for segment in segments):
+         raise ValueError(f"malformed placeholder {inner!r}")
++    filters = [filter_name.strip() for filter_name in filters]
+     for filter_name in filters:
+         if filter_name not in _FILTERS:
+             raise ValueError(f"unknown filter {filter_name!r}")
+     current = values
+     for segment in segments:
++        if not isinstance(current, dict):
++            raise KeyError(segment)
+         current = current[segment]
+     text = str(current)
+-    for filter_name in reversed(filters):
++    for filter_name in filters:
+         text = _FILTERS[filter_name](text)
+     return text
+ 
+@@ -46,8 +49,11 @@ def render(template: str, values: dict) -> str:
+             output.append(_expand(inner, values))
+             index = end + 1
+         elif character == "}":
+-            output.append("}")
+-            index += 2 if template.startswith("}}", index) else 1
++            if template.startswith("}}", index):
++                output.append("}")
++                index += 2
++                continue
++            raise ValueError("unmatched '}'")
+         else:
+             output.append(character)
+             index += 1
+diff --git a/test_extra.py b/test_extra.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0ad25e506be58f392ef709da5ddfbcac44de3ffa
+--- /dev/null
++++ b/test_extra.py
+@@ -0,0 +1,48 @@
++import unittest
++
++from solution import render
++
++
++class TestSpec(unittest.TestCase):
++    def test_cases(self):
++        cases = [
++            ("{ name | upper }", {"name": " a "}, " A "),
++            ("{v|trim|upper}", {"v": " ab "}, "AB"),
++            ("{a.b}", {"a": {"b": 2}}, "2"),
++            ("{{}}", {}, "{}"),
++            ("{{x}}", {}, "{x}"),
++            ("{v|title}", {"v": "ab cd"}, "Ab Cd"),
++            ("{v|upper|lower}", {"v": "Ab"}, "ab"),
++            ("{ v }", {"v": 1}, "1"),
++            ("a}}b", {}, "a}b"),
++        ]
++        for t, v, e in cases:
++            self.assertEqual(render(t, v), e, t)
++
++    def test_errors(self):
++        value_errors = [
++            ("{}", {}),
++            ("{ }", {}),
++            ("{a|}", {"a": 1}),
++            ("{a|  }", {"a": 1}),
++            ("{a|nope}", {"a": 1}),
++            ("{a.}", {}),
++            ("{a..b}", {"a": {}}),
++            ("{a", {}),
++            ("}", {}),
++        ]
++        for t, v in value_errors:
++            with self.assertRaises(ValueError, msg=t):
++                render(t, v)
++        key_errors = [
++            ("{a.b}", {"a": 5}),
++            ("{x}", {}),
++            ("{a.b}", {"a": {}}),
++        ]
++        for t, v in key_errors:
++            with self.assertRaises(KeyError, msg=t):
++                render(t, v)
++
++
++if __name__ == "__main__":
++    unittest.main()

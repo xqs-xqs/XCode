@@ -507,3 +507,27 @@ func (body *failingBody) Close() error {
 
 // 编译期断言确保测试 Body 实现了 HTTP 响应所需的接口。
 var _ io.ReadCloser = (*failingBody)(nil)
+
+func TestEscapeControlCharsInStringsRepairsMultilineArguments(t *testing.T) {
+	broken := "{\"command\": [\"python\", \"-c\", \"import a\nprint(\\\"x\\\")\tok\"],\n \"workdir\": \".\"}"
+	if json.Valid([]byte(broken)) {
+		t.Fatal("test input should be invalid JSON")
+	}
+	var decoded struct {
+		Command []string `json:"command"`
+		Workdir string   `json:"workdir"`
+	}
+	if err := json.Unmarshal([]byte(escapeControlCharsInStrings(broken)), &decoded); err != nil {
+		t.Fatalf("repaired arguments are still invalid: %v", err)
+	}
+	if len(decoded.Command) != 3 || decoded.Command[2] != "import a\nprint(\"x\")\tok" || decoded.Workdir != "." {
+		t.Fatalf("repair changed the content: %+v", decoded)
+	}
+	valid := `{"a": "line\nnext", "b": "quote \" and backslash \\"}`
+	if got := escapeControlCharsInStrings(valid); got != valid {
+		t.Fatalf("valid JSON was modified: %s", got)
+	}
+	if json.Valid([]byte(escapeControlCharsInStrings(`{"a": [1, 2`))) {
+		t.Fatal("unrelated damage must stay invalid")
+	}
+}

@@ -1,0 +1,57 @@
+diff --git a/solution.py b/solution.py
+index a4e640d12e585a9f05c51942904375f8f8e0ce98..4e44614a6bb2ed5c36b49e2cf29034c11ae28025 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,51 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def split_line(line: str) -> list:
+-    raise NotImplementedError
++    """Split one CSV record into a list of field strings.
++
++    Commas separate fields.  A field may be wrapped in double quotes; inside
++    such a field commas are literal and a pair of quotes ("" ) stands for one
++    literal quote character.  Empty fields become "".
++
++    Raises:
++        ValueError: if a quoted field is not closed before the end of line.
++    """
++    fields = []
++    i = 0
++    n = len(line)
++
++    while True:
++        if i < n and line[i] == '"':
++            # Quoted field: consume until the closing quote.
++            i += 1
++            chunks = []
++            while True:
++                if i >= n:
++                    raise ValueError("unterminated quoted field")
++                ch = line[i]
++                if ch == '"':
++                    if i + 1 < n and line[i + 1] == '"':
++                        chunks.append('"')
++                        i += 2
++                        continue
++                    i += 1  # closing quote
++                    break
++                chunks.append(ch)
++                i += 1
++            # Anything after the closing quote (before the separator) is kept
++            # literally, matching lenient readers.
++            while i < n and line[i] != ",":
++                chunks.append(line[i])
++                i += 1
++            fields.append("".join(chunks))
++        else:
++            start = i
++            while i < n and line[i] != ",":
++                i += 1
++            fields.append(line[start:i])
++
++        if i >= n:
++            break
++        i += 1  # skip the separating comma
++
++    return fields
+ 

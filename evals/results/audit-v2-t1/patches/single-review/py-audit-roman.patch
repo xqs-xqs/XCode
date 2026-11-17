@@ -1,0 +1,41 @@
+diff --git a/solution.py b/solution.py
+index a4dc5999b063822f50242cf0b4bcec244af46f12..233d2896faab74834b1c81728aae04dcbb9523c3 100644
+--- a/solution.py
++++ b/solution.py
+@@ -5,11 +5,13 @@ _SYMBOLS = [
+     (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+ ]
+ 
++_LETTERS = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
++
+ 
+ def to_roman(number: int) -> str:
+-    if not isinstance(number, int):
++    if isinstance(number, bool) or not isinstance(number, int):
+         raise TypeError("number must be an int")
+-    if not 1 <= number <= 4999:
++    if not 1 <= number <= 3999:
+         raise ValueError("number out of range")
+     parts = []
+     for value, symbol in _SYMBOLS:
+@@ -22,11 +24,15 @@ def to_roman(number: int) -> str:
+ def from_roman(text: str) -> int:
+     if not isinstance(text, str) or not text:
+         raise ValueError("not a Roman numeral")
+-    total, position = 0, 0
+-    for value, symbol in _SYMBOLS:
+-        while text.startswith(symbol, position):
++    total = 0
++    for index, char in enumerate(text):
++        value = _LETTERS.get(char)
++        if value is None:
++            raise ValueError(f"not a standard Roman numeral: {text!r}")
++        if index + 1 < len(text) and value < _LETTERS.get(text[index + 1], 0):
++            total -= value
++        else:
+             total += value
+-            position += len(symbol)
+-    if position != len(text) or not 1 <= total <= 3999:
++    if not 1 <= total <= 3999 or to_roman(total) != text:
+         raise ValueError(f"not a standard Roman numeral: {text!r}")
+     return total

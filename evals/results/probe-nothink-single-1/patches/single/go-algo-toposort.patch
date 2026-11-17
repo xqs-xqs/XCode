@@ -1,0 +1,70 @@
+diff --git a/solution.go b/solution.go
+index 3507b0ba8185767987c26150e9b83ba36159f5e2..9ef7e95fb882020cc20846ebb1c504a8a94cd5d8 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,6 +1,10 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"fmt"
++	"sort"
++)
+ 
+ // ErrCycle is returned when the graph contains a cycle.
+ var ErrCycle = errors.New("graph contains a cycle")
+@@ -9,5 +13,52 @@ var ErrCycle = errors.New("graph contains a cycle")
+ // alphabetically smaller name. It returns ErrCycle for a cyclic graph and an
+ // error naming the node when an edge references an unknown node.
+ func TopoOrder(nodes []string, edges [][2]string) ([]string, error) {
+-	panic("not implemented")
++	indegree := make(map[string]int, len(nodes))
++	adj := make(map[string][]string, len(nodes))
++	for _, n := range nodes {
++		if _, ok := indegree[n]; ok {
++			continue
++		}
++		indegree[n] = 0
++	}
++	for _, e := range edges {
++		from, to := e[0], e[1]
++		if _, ok := indegree[from]; !ok {
++			return nil, fmt.Errorf("edge references unknown node %q", from)
++		}
++		if _, ok := indegree[to]; !ok {
++			return nil, fmt.Errorf("edge references unknown node %q", to)
++		}
++		adj[from] = append(adj[from], to)
++		indegree[to]++
++	}
++
++	ready := make([]string, 0, len(indegree))
++	for n, d := range indegree {
++		if d == 0 {
++			ready = append(ready, n)
++		}
++	}
++	sort.Strings(ready)
++
++	order := make([]string, 0, len(indegree))
++	for len(ready) > 0 {
++		cur := ready[0]
++		ready = ready[1:]
++		order = append(order, cur)
++		for _, next := range adj[cur] {
++			indegree[next]--
++			if indegree[next] == 0 {
++				i := sort.SearchStrings(ready, next)
++				ready = append(ready, "")
++				copy(ready[i+1:], ready[i:])
++				ready[i] = next
++			}
++		}
++	}
++
++	if len(order) != len(indegree) {
++		return nil, ErrCycle
++	}
++	return order, nil
+ }

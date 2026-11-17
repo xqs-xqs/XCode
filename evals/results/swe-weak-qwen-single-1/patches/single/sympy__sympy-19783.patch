@@ -1,0 +1,62 @@
+diff --git a/tmp_repro.py b/tmp_repro.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f3dd0063f61a8c46473b5bef4114a42787c906d6
+--- /dev/null
++++ b/tmp_repro.py
+@@ -0,0 +1,56 @@
++from __future__ import print_function
++
++from sympy import Symbol, I, sin, Matrix, eye, simplify, Rational
++from sympy.physics.quantum import (
++    Dagger, IdentityOperator, Operator, Ket, Bra, InnerProduct, OuterProduct)
++
++A = Operator('A')
++B = Operator('B')
++a = Symbol('a')
++Id = IdentityOperator()
++
++tests = [
++    ('I*Id', I*Id),
++    ('A*Id', A*Id),
++    ('Dagger(A)*Id', Dagger(A)*Id),
++    ('Dagger(a)*Id', Dagger(a)*Id),
++    ('Dagger(Ket)*Id', Dagger(Ket('psi'))*Id),
++    ('Dagger(Bra)*Id', Dagger(Bra('psi'))*Id),
++    ('Dagger(IP)*Id', Dagger(InnerProduct(Bra('a'), Ket('b')))*Id),
++    ('Dagger(OP)*Id', Dagger(OuterProduct(Ket('a'), Bra('b')))*Id),
++    ('Dagger(OP)', Dagger(OuterProduct(Ket('a'), Bra('b')))),
++    ('Dagger(IP)', Dagger(InnerProduct(Bra('a'), Ket('b')))),
++    ('Dagger(Ket)', Dagger(Ket('psi'))),
++    ('Dagger(Bra)', Dagger(Bra('psi'))),
++    ('Dagger(A*B)', Dagger(A*B)),
++    ('Dagger(A+B)', Dagger(A+B)),
++    ('Dagger(A**2)', Dagger(A**2)),
++    ('Dagger(a*I)', Dagger(a*I)),
++    ('Dagger(sin(a))', Dagger(sin(a))),
++    ('Dagger(Dagger(A))', Dagger(Dagger(A))),
++]
++for name, val in tests:
++    print('%-18s -> %s' % (name, val))
++
++print('--- expected-true checks ---')
++checks = {
++    'I*Id == Id': I*Id == Id,
++    'A*Id == A': A*Id == A,
++    'Dagger(A)*Id == Dagger(A)': Dagger(A)*Id == Dagger(A),
++    'Dagger(a)*Id == Dagger(a)': Dagger(a)*Id == Dagger(a),
++    'Dagger(Ket)*Id == Dagger(Ket)': Dagger(Ket('psi'))*Id == Dagger(Ket('psi')),
++    'Dagger(Bra)*Id == Dagger(Bra)': Dagger(Bra('psi'))*Id == Dagger(Bra('psi')),
++    'Dagger(IP)*Id == Dagger(IP)': Dagger(InnerProduct(Bra('a'), Ket('b')))*Id == Dagger(InnerProduct(Bra('a'), Ket('b'))),
++    'Dagger(OP)*Id == Dagger(OP)': Dagger(OuterProduct(Ket('a'), Bra('b')))*Id == Dagger(OuterProduct(Ket('a'), Bra('b'))),
++    'Dagger(OP)==OuterProduct(Ket(b),Bra(a))': Dagger(OuterProduct(Ket('a'), Bra('b'))) == OuterProduct(Ket('b'), Bra('a')),
++    'Dagger(IP)==InnerProduct(Ket(b),Bra(a))': Dagger(InnerProduct(Bra('a'), Ket('b'))) == InnerProduct(Ket('b'), Bra('a')),
++    'Dagger(Ket)==Bra': Dagger(Ket('psi')) == Bra('psi'),
++    'Dagger(Bra)==Ket': Dagger(Bra('psi')) == Ket('psi'),
++    'Dagger(A*B)==Dagger(B)*Dagger(A)': Dagger(A*B) == Dagger(B)*Dagger(A),
++    'Dagger(A**2)==Dagger(A)**2': Dagger(A**2) == Dagger(A)**2,
++    'Dagger(a*I)==Dagger(a)*(-I)': Dagger(a*I) == Dagger(a)*(-I),
++    'Dagger(sin(a))==sin(Dagger(a))': Dagger(sin(a)) == sin(Dagger(a)),
++    'simplify(eye*Dagger)==eye': simplify(eye(2)*Dagger(eye(2))) == eye(2),
++}
++for name, ok in checks.items():
++    print('%-45s %s' % (name, 'OK' if ok else 'FAIL'))

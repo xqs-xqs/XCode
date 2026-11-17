@@ -1,0 +1,80 @@
+diff --git a/solution.py b/solution.py
+index c83150569ac4f9fdabd7cccba6c6f66dbf8f30ce..5a03816cc0d90b0cfcf58d9f2b4d465ca9b8ddd7 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,74 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++import heapq
++
++_UNVISITED = 0
++_ON_STACK = 1
++_DONE = 2
++
++
++def _format_cycle(cycle_path: list) -> str:
++    """Render a cycle (given as a path whose last node repeats the first)."""
++    body = cycle_path[:-1]
++    start = body.index(min(body))
++    body = body[start:] + body[:start]
++    return " -> ".join(body + [body[0]])
++
++
++def _find_cycle(deps: dict, remaining) -> str:
++    """Return the message for one dependency cycle among `remaining` nodes."""
++    state = {name: _UNVISITED for name in remaining}
++    path = []
++    for start in sorted(remaining):
++        if state[start] != _UNVISITED:
++            continue
++        state[start] = _ON_STACK
++        path.append(start)
++        stack = [(start, iter(sorted(deps[start])))]
++        while stack:
++            node, successors = stack[-1]
++            descended = False
++            for nxt in successors:
++                if state[nxt] == _ON_STACK:
++                    return _format_cycle(path[path.index(nxt):] + [nxt])
++                if state[nxt] == _UNVISITED:
++                    state[nxt] = _ON_STACK
++                    path.append(nxt)
++                    stack.append((nxt, iter(sorted(deps[nxt]))))
++                    descended = True
++                    break
++            if not descended:
++                stack.pop()
++                state[node] = _DONE
++                path.pop()
++    raise AssertionError("no cycle found")  # pragma: no cover
++
++
+ def install_order(packages: dict) -> list:
+-    raise NotImplementedError
++    deps = {name: set(dependency_list) for name, dependency_list in packages.items()}
++    dependents = {name: [] for name in deps}
++    for name, dependency_set in deps.items():
++        for dependency in dependency_set:
++            if dependency not in deps:
++                raise KeyError(dependency)
++            dependents[dependency].append(name)
++
++    pending = {name: len(dependency_set) for name, dependency_set in deps.items()}
++    ready = [name for name, count in pending.items() if count == 0]
++    heapq.heapify(ready)
++
++    order = []
++    while ready:
++        name = heapq.heappop(ready)
++        order.append(name)
++        for dependent in dependents[name]:
++            pending[dependent] -= 1
++            if pending[dependent] == 0:
++                heapq.heappush(ready, dependent)
++
++    if len(order) != len(deps):
++        remaining = [name for name in deps if pending[name] > 0]
++        raise ValueError(_find_cycle(deps, remaining))
++
++    return order
+ 

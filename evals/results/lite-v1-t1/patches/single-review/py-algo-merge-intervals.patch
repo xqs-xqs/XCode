@@ -1,0 +1,26 @@
+diff --git a/solution.py b/solution.py
+index 9f9f0aa8b7b04325250a5f401ae6576b5cf13f90..2e3288e0d996f25b8e64a6605fbd2434b6716114 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,20 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def merge(intervals: list[list]) -> list[list]:
+-    raise NotImplementedError
++    if not intervals:
++        return []
++
++    # Sort a copy of the pairs so the caller's input is never modified.
++    ordered = sorted((list(pair) for pair in intervals), key=lambda pair: (pair[0], pair[1]))
++
++    merged = [list(ordered[0])]
++    for start, end in ordered[1:]:
++        last = merged[-1]
++        if start <= last[1]:
++            # Overlapping or touching: extend the current interval if needed.
++            if end > last[1]:
++                last[1] = end
++        else:
++            merged.append([start, end])
++
++    return merged
+ 

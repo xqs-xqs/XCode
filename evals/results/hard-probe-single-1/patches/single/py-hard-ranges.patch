@@ -1,0 +1,54 @@
+diff --git a/solution.py b/solution.py
+index 02bde0c34836374550cb369f1370f134a0b67e86..687e49a69dc3f2ceb832c1cca403d0ac67497876 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,47 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++_RANGE_RE = re.compile(r"^(-?\d+)\s*-\s*(-?\d+)$")
++_SINGLE_RE = re.compile(r"^-?\d+$")
++
++
+ def compress(numbers) -> str:
+-    raise NotImplementedError
++    values = sorted(set(numbers))
++    parts = []
++    index = 0
++    while index < len(values):
++        start = values[index]
++        end = start
++        while index + 1 < len(values) and values[index + 1] == end + 1:
++            index += 1
++            end = values[index]
++        length = end - start + 1
++        if length >= 3:
++            parts.append(f"{start}-{end}")
++        else:
++            parts.extend(str(value) for value in values[index - length + 1:index + 1])
++        index += 1
++    return ",".join(parts)
++
+ 
+ def expand(text: str) -> list:
+-    raise NotImplementedError
++    if not text.strip():
++        return []
++    result = set()
++    for raw_item in text.split(","):
++        item = raw_item.strip()
++        if not item:
++            raise ValueError(f"empty item in {text!r}")
++        range_match = _RANGE_RE.match(item)
++        if range_match:
++            start = int(range_match.group(1))
++            end = int(range_match.group(2))
++            if end < start:
++                raise ValueError(f"descending range {item!r}")
++            result.update(range(start, end + 1))
++        elif _SINGLE_RE.match(item):
++            result.add(int(item))
++        else:
++            raise ValueError(f"invalid item {item!r}")
++    return sorted(result)
+ 

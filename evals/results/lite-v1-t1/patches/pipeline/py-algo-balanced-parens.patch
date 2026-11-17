@@ -1,0 +1,29 @@
+diff --git a/solution.py b/solution.py
+index 53c3019a413d45cc902452826eb8500ace171162..09bf38d23bde85a46a974ecfd937e9ef821a9c83 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,23 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def is_balanced(text: str) -> bool:
+-    raise NotImplementedError
++    for ch in text:
++        if ch not in "()*":
++            raise ValueError(f"invalid character: {ch!r}")
++
++    low = 0
++    high = 0
++    for ch in text:
++        if ch == "(":
++            low += 1
++            high += 1
++        elif ch == ")":
++            low = max(0, low - 1)
++            high -= 1
++            if high < 0:
++                return False
++        else:  # "*" may act as "(", ")" or nothing
++            low = max(0, low - 1)
++            high += 1
++
++    return low == 0
+ 

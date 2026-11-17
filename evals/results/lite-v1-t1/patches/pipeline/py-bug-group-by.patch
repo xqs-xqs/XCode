@@ -1,0 +1,11 @@
+diff --git a/solution.py b/solution.py
+index 1a5ac8d2c2b29b4cd0af78e2d60bbfb27e701c81..8deb09b7b483ce5b387e14db3a61f7db2d461ff1 100644
+--- a/solution.py
++++ b/solution.py
+@@ -5,5 +5,5 @@ def group_by_amount(rows: list) -> dict:
+     """Return amount -> list of row names, in first-seen group order."""
+     groups = {}
+     for name, amount in rows:
+-        groups[amount] = [name]
++        groups.setdefault(amount, []).append(name)
+     return groups

@@ -1,0 +1,241 @@
+diff --git a/_tmp_check.py b/_tmp_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c1fc7d95b6e8f3ac0f3598111a75acd9b7ad4cb3
+--- /dev/null
++++ b/_tmp_check.py
+@@ -0,0 +1,71 @@
++from solution import render
++
++ok = 0
++fail = []
++
++
++def eq(t, v, e):
++    global ok
++    r = render(t, v)
++    if r == e:
++        ok += 1
++    else:
++        fail.append(("value", t, v, e, r))
++
++
++def err(t, v, exc):
++    global ok
++    try:
++        r = render(t, v)
++    except exc:
++        ok += 1
++    except Exception as ex:
++        fail.append(("wrong-exc", t, v, exc, ex))
++    else:
++        fail.append(("no-exc", t, v, exc, r))
++
++
++eq("{v}", {"v": "Ab"}, "Ab")
++eq("{v|upper|lower}", {"v": "Ab"}, "ab")
++eq("{v|lower|upper}", {"v": "Ab"}, "AB")
++eq("Hi { name | upper }!", {"name": "x"}, "Hi X!")
++eq("{user.name}", {"user": {"name": "bo"}}, "bo")
++eq("{a.b.c}", {"a": {"b": {"c": 5}}}, "5")
++eq("{{}}", {}, "{}")
++eq("a{{b}}c", {"x": 1}, "a{b}c")
++eq("{{{v}}}", {"v": "z"}, "{z}")
++eq("{v|trim|upper}", {"v": "  ab "}, "AB")
++eq("{v|title}", {"v": "a b c"}, "A B C")
++eq("", {}, "")
++eq("plain text", {"x": 1}, "plain text")
++eq("{v}", {"v": 12}, "12")
++eq("{v|trim}", {"v": "  y "}, "y")
++eq("{v|upper|trim}", {"v": " ab "}, "AB")
++eq("{a.b|upper}", {"a": {"b": "c"}}, "C")
++eq("{v|upper|lower|title|trim}", {"v": " a b "}, "A B")
++eq("{v| trim | upper }", {"v": " q "}, "Q")
++err("{v|x}", {"v": "a"}, ValueError)
++err("{v|}", {"v": "a"}, ValueError)
++err("{v||upper}", {"v": "a"}, ValueError)
++err("{}", {}, ValueError)
++err("{  }", {}, ValueError)
++err("{v", {}, ValueError)
++err("a}b", {}, ValueError)
++err("}", {}, ValueError)
++err("}}}", {}, ValueError)
++err("abc}", {}, ValueError)
++err("{ upper}", {}, ValueError)
++err("{a..b}", {"a": {"b": 1}}, ValueError)
++err("{.a}", {"a": 1}, ValueError)
++err("{a.}", {"a": 1}, ValueError)
++err("{a b}", {"a b": 1}, ValueError)
++err("{a-b}", {"a-b": 1}, ValueError)
++err("{missing}", {}, KeyError)
++err("{a.b}", {"a": 5}, KeyError)
++err("{a.b}", {"a": "str"}, KeyError)
++err("{a.b}", {"a": [1]}, KeyError)
++err("{a.b.c}", {"a": {"b": "x"}}, KeyError)
++
++print("passed", ok, "failed", len(fail))
++for f in fail:
++    print("FAIL", f)
+diff --git a/solution.py b/solution.py
+index 8852ffcd0884c76e409592e6671f106b397fb000..1666f2fafacb89ef298286e862e6a8bea293b3da 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,7 @@
+ """A small placeholder template renderer."""
+ 
+ import re
++from collections.abc import Mapping
+ 
+ _SEGMENT = re.compile(r"[A-Za-z0-9_]+")
+ _FILTERS = {
+@@ -12,18 +13,26 @@ _FILTERS = {
+ 
+ 
+ def _expand(inner: str, values) -> str:
+-    name, *filters = inner.split("|")
++    raw_name, *raw_filters = inner.split("|")
++    name = raw_name.strip()
++    filters = [filter_name.strip() for filter_name in raw_filters]
++    if not name:
++        raise ValueError(f"empty placeholder {inner!r}")
+     segments = name.split(".")
+     if any(_SEGMENT.fullmatch(segment) is None for segment in segments):
+         raise ValueError(f"malformed placeholder {inner!r}")
+     for filter_name in filters:
++        if not filter_name:
++            raise ValueError(f"empty filter in placeholder {inner!r}")
+         if filter_name not in _FILTERS:
+             raise ValueError(f"unknown filter {filter_name!r}")
+     current = values
+     for segment in segments:
++        if not isinstance(current, Mapping):
++            raise KeyError(segment)
+         current = current[segment]
+     text = str(current)
+-    for filter_name in reversed(filters):
++    for filter_name in filters:
+         text = _FILTERS[filter_name](text)
+     return text
+ 
+@@ -46,8 +55,11 @@ def render(template: str, values: dict) -> str:
+             output.append(_expand(inner, values))
+             index = end + 1
+         elif character == "}":
+-            output.append("}")
+-            index += 2 if template.startswith("}}", index) else 1
++            if template.startswith("}}", index):
++                output.append("}")
++                index += 2
++            else:
++                raise ValueError("lone '}' outside a placeholder")
+         else:
+             output.append(character)
+             index += 1
+diff --git a/tmp_spec_test.py b/tmp_spec_test.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..9a4d9746aac4cb8c03cf6def2942873e8f2f57c0
+--- /dev/null
++++ b/tmp_spec_test.py
+@@ -0,0 +1,64 @@
++import unittest
++
++from solution import render
++
++
++class SpecTest(unittest.TestCase):
++    def test_values_ok(self):
++        cases = [
++            ("{v}", {"v": "Ab"}, "Ab"),
++            ("{v|upper|lower}", {"v": "Ab"}, "ab"),
++            ("{v|lower|upper}", {"v": "Ab"}, "AB"),
++            ("Hi { name | upper }!", {"name": "x"}, "Hi X!"),
++            ("{user.name}", {"user": {"name": "bo"}}, "bo"),
++            ("{a.b.c}", {"a": {"b": {"c": 5}}}, "5"),
++            ("{{}}", {}, "{}"),
++            ("a{{b}}c", {"x": 1}, "a{b}c"),
++            ("{{{v}}}", {"v": "z"}, "{z}"),
++            ("{v|trim|upper}", {"v": "  ab "}, "AB"),
++            ("{v|title}", {"v": "a b c"}, "A B C"),
++            ("", {}, ""),
++            ("plain text", {"x": 1}, "plain text"),
++            ("{v}", {"v": 12}, "12"),
++            ("{v|trim}", {"v": "  y "}, "y"),
++            ("{v|upper|trim}", {"v": " ab "}, "AB"),
++            ("{a.b|upper}", {"a": {"b": "c"}}, "C"),
++            ("{v|upper|lower|title|trim}", {"v": " a b "}, "A B"),
++            ("{v| trim | upper }", {"v": " q "}, "Q"),
++            ("{{a}}", {}, "{a}"),
++            ("{{x}}", {}, "{x}"),
++            ("{a.b|upper|trim}", {"a": {"b": " x "}}, "X"),
++            ("{v|title|lower}", {"v": "A B"}, "a b"),
++            ("{v|trim|title|upper}", {"v": " a b "}, "A B"),
++            ("x{{y}}z{v}", {"v": "!"}, "x{y}z!"),
++        ]
++        for template, values, expected in cases:
++            with self.subTest(template=template):
++                self.assertEqual(render(template, values), expected)
++
++    def test_errors(self):
++        bad = [
++            "{v|x}", "{v|}", "{v||upper}", "{}", "{  }", "{v", "a}b", "}", "}}}",
++            "abc}", "{a..b}", "{.a}", "{a.}", "{a b}", "{a-b}",
++        ]
++        for template in bad:
++            with self.subTest(template=template):
++                self.assertRaises(ValueError, render, template, {"v": "a", "a": {"b": 1}})
++
++    def test_key_errors(self):
++        bad = [
++            ("{missing}", {}),
++            ("{a.b}", {"a": 5}),
++            ("{a.b}", {"a": "str"}),
++            ("{a.b}", {"a": [1]}),
++            ("{a.b.c}", {"a": {"b": "x"}}),
++            ("{a.b}", {"a": {}}),
++            ("{a}", {}),
++        ]
++        for template, values in bad:
++            with self.subTest(template=template, values=values):
++                self.assertRaises(KeyError, render, template, values)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tmp_visible_check.py b/tmp_visible_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cdb26fce0769726b4ef1a72e54fc22d6089bdea
+--- /dev/null
++++ b/tmp_visible_check.py
+@@ -0,0 +1,33 @@
++"""Report pass/fail for every assertion written in test_visible.py."""
++
++from solution import render
++
++def _raises(kind, fn, *args):
++    try:
++        fn(*args)
++    except kind:
++        return f"raised {kind.__name__}"
++    return f"FAIL: no {kind.__name__}"
++
++
++def _show(fn):
++    try:
++        return repr(fn())
++    except Exception as error:  # noqa: BLE001
++        return f"{type(error).__name__}: {error}"
++
++
++print("filters chain:", _show(lambda: render("{v|upper|lower}", {"v": "Ab"})), "expected 'ab'")
++print("escape {{x}}:", _show(lambda: render("{{x}}", {})), "visible expects '{' (spec -> '{x}')")
++print("lone }}:", _show(lambda: render("a}}b", {})))
++print("lone }:", _raises(ValueError, render, "}", {}))
++print("spaces:", _show(lambda: render("{ name | upper }", {"name": " ada "})), "expected 'ADA'")
++print("dotted:", _show(lambda: render("{a.b}", {"a": {"b": 2}})), "expected '2'")
++print("missing:", _raises(KeyError, render, "{x}", {"y": 1}))
++print("walk non-dict:", _raises(KeyError, render, "{a.b}", {"a": 1}))
++print("empty filter:", _raises(ValueError, render, "{a|}", {}))
++print("unknown filter:", _raises(ValueError, render, "{a|nope}", {}))
++print("empty placeholder:", _raises(ValueError, render, "{}", {}))
++print("unclosed:", _raises(ValueError, render, "{a", {}))
++print("malformed:", _raises(ValueError, render, "{a-b}", {}))
++print("chain trim/title:", _show(lambda: render("{ v | trim | title }", {"v": "  jo e  "})))

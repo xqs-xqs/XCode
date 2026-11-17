@@ -1,0 +1,19 @@
+diff --git a/solution.py b/solution.py
+index 70b522fafa912f1c8d6687cb2121380bc3314db8..019de513dc742e485647d67797a4f0271c97714c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,13 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def max_subarray_sum(values: list) -> int:
+-    raise NotImplementedError
++    if not values:
++        raise ValueError("max_subarray_sum() requires at least one value")
++
++    best = current = values[0]
++    for value in values[1:]:
++        # Extend the running subarray, or start a new one at `value`.
++        current = value if current < 0 else current + value
++        if current > best:
++            best = current
++    return best
+ 

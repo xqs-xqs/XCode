@@ -1,0 +1,31 @@
+diff --git a/solution.py b/solution.py
+index 25f0e6314e2b74503ed8541eaacc07f5b3568fbf..b28378648f528956f09a15d588308a3e529e308e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,25 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def search(values: list, target: int) -> int:
+-    raise NotImplementedError
++    """Return the index of target in a rotated sorted list, or -1.
++
++    Runs in O(log n) time and O(1) space. At every step at least one of the
++    two halves around mid is genuinely sorted, so the range containing target
++    can be chosen without ever scanning the list.
++    """
++    lo, hi = 0, len(values) - 1
++    while lo <= hi:
++        mid = (lo + hi) // 2
++        if values[mid] == target:
++            return mid
++        if values[lo] <= values[mid]:  # left half [lo, mid] is sorted
++            if values[lo] <= target < values[mid]:
++                hi = mid - 1
++            else:
++                lo = mid + 1
++        else:  # right half [mid, hi] is sorted
++            if values[mid] < target <= values[hi]:
++                lo = mid + 1
++            else:
++                hi = mid - 1
++    return -1
+ 

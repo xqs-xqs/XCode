@@ -1,0 +1,27 @@
+diff --git a/scratch_repro.py b/scratch_repro.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1cc8cbb0a1a531f0b1ea331552248d466de82fed
+--- /dev/null
++++ b/scratch_repro.py
+@@ -0,0 +1,21 @@
++import sys
++sys.path.insert(0, '/tmp/xcode-lite-17rqgmgd/workspace')
++from sympy import *
++from sympy.core.cache import clear_cache
++from sympy.polys.polyerrors import PolynomialError
++
++clear_cache()
++x, y, z = symbols('x y z', real=True)
++expr = exp(sinh(Piecewise((x, y > x), (y, True)) / z))
++try:
++    expr.subs({1: 1.0})
++except PolynomialError:
++    t = sys.exc_info()[2]
++    while t:
++        f = t.tb_frame
++        if f.f_code.co_filename.endswith('mod.py'):
++            loc = f.f_locals
++            print('mod.py at line', t.tb_lineno)
++            print('   p =', repr(loc.get('p')))
++            print('   q =', repr(loc.get('q')))
++        t = t.tb_next

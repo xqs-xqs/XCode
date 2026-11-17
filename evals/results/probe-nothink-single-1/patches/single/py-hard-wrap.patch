@@ -1,0 +1,48 @@
+diff --git a/solution.py b/solution.py
+index b4753300334b44208471942e37907f0f01dca89c..90473ab1a5ca4fb2f826f9bebb3ddd8357eb39f1 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,42 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def wrap(text: str, width: int) -> list:
+-    raise NotImplementedError
++    if width < 1:
++        raise ValueError("width must be at least 1")
++
++    paragraphs = []
++    current = []
++    for line in text.splitlines():
++        if line.strip():
++            current.extend(line.split())
++        elif current:
++            paragraphs.append(current)
++            current = []
++    if current:
++        paragraphs.append(current)
++
++    result = []
++    for words in paragraphs:
++        if result:
++            result.append("")
++        line = ""
++        for word in words:
++            if line and len(line) + 1 + len(word) <= width:
++                line += " " + word
++                continue
++            if len(word) <= width:
++                if line:
++                    result.append(line)
++                line = word
++                continue
++            # Word is longer than width: flush, then chunk it.
++            if line:
++                result.append(line)
++                line = ""
++            while len(word) > width:
++                result.append(word[:width])
++                word = word[width:]
++            line = word
++        if line:
++            result.append(line)
++    return result
+ 

@@ -198,6 +198,32 @@ func TestWriteCompactEventRendersKeyKinds(t *testing.T) {
 	}
 }
 
+// TestWriteCompactEventAttributesSubagents 验证子智能体的生成、内部进度与返回都标注了编号和角色。
+func TestWriteCompactEventAttributesSubagents(t *testing.T) {
+	var output strings.Builder
+	events := []harness.Event{
+		{Kind: harness.ToolStarted, Step: 1, Tool: "delegate", Data: "{\"role\": \"planner\"}"},
+		{Kind: harness.AgentSpawned, AgentID: "sub-9", Tool: "delegate", Data: "role=planner prompt=diagnose the failing test"},
+		{Kind: harness.ToolStarted, AgentID: "sub-9", Step: 1, Tool: "read_file", Data: "{\"path\": \"calc.go\"}"},
+		{Kind: harness.ModelTextDeltaEmitted, AgentID: "sub-9", Step: 1, Data: "noise"},
+		{Kind: harness.RunCompleted, AgentID: "sub-9", Step: 2, Data: "answer"},
+		{Kind: harness.AgentCompleted, AgentID: "sub-9", Tool: "delegate", Data: "Add subtracts\ninstead of adding"},
+		{Kind: harness.ReviewVerdict, Step: 3, Data: "PASS"},
+	}
+	for _, event := range events {
+		writeCompactEvent(&output, event)
+	}
+	want := "[step 1] delegate {\"role\": \"planner\"}\n" +
+		"[agent] sub-9 planner spawned: diagnose the failing test\n" +
+		"  [sub-9 planner] [step 1] read_file {\"path\": \"calc.go\"}\n" +
+		"  [sub-9 planner] [done] steps=2\n" +
+		"[agent] sub-9 planner returned: Add subtracts instead of adding\n" +
+		"[review] verdict: PASS\n"
+	if got := output.String(); got != want {
+		t.Fatalf("compact output =\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // TestCompactLineCollapsesAndTruncates 验证进度文本压成单行并遵守长度上限。
 func TestCompactLineCollapsesAndTruncates(t *testing.T) {
 	if got := compactLine("a\n  b\tc", 120); got != "a b c" {

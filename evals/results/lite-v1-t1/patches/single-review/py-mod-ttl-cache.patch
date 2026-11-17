@@ -1,0 +1,74 @@
+diff --git a/solution.py b/solution.py
+index be59bfade6447c878deb0e54ea274bfa50fd453e..da4378fb6194a0fee8c8ed545ef75762cae3a9c2 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,68 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++from collections import OrderedDict
++
++_MISSING = object()
++
++
+ class TTLCache:
+-    pass
++    """LRU cache whose entries expire ``ttl`` seconds after they are written.
++
++    Recency is tracked in ``_data`` (an ``OrderedDict`` ordered least to most
++    recently used).  A ``get`` or a ``set`` both count as a use.
++    """
++
++    def __init__(self, capacity, ttl, clock):
++        if capacity <= 0:
++            raise ValueError("capacity must be positive")
++        if ttl <= 0:
++            raise ValueError("ttl must be positive")
++        self._capacity = capacity
++        self._ttl = ttl
++        self._clock = clock
++        # key -> (value, expiry_time)
++        self._data = OrderedDict()
++
++    def _now(self):
++        return self._clock()
++
++    def _is_live(self, key, now):
++        entry = self._data.get(key)
++        return entry is not None and now < entry[1]
++
++    def _purge_expired(self):
++        now = self._now()
++        for key in [k for k, (_, expiry) in self._data.items() if now >= expiry]:
++            del self._data[key]
++
++    def set(self, key, value):
++        now = self._now()
++        self._data[key] = (value, now + self._ttl)
++        self._data.move_to_end(key)
++        if len(self._data) > self._capacity:
++            # Drop already-expired entries first: they are not live, so a live
++            # entry should be preferred for eviction only when nothing is dead.
++            self._purge_expired()
++        while len(self._data) > self._capacity:
++            self._data.popitem(last=False)
++
++    def get(self, key, default=None):
++        entry = self._data.get(key)
++        if entry is None:
++            return default
++        now = self._now()
++        value, expiry = entry
++        if now >= expiry:
++            del self._data[key]
++            return default
++        self._data.move_to_end(key)
++        return value
++
++    def __len__(self):
++        self._purge_expired()
++        return len(self._data)
++
++    def __contains__(self, key):
++        return self._is_live(key, self._now())
++
+ 

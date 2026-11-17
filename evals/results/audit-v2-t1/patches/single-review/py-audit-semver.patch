@@ -1,0 +1,138 @@
+diff --git a/solution.py b/solution.py
+index af1b7c6f135acfbcfe556e04fe525b97b3dcb71c..9afe227e98a60dae86dfc5d5b85b1893fb5c7b2e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -2,7 +2,7 @@
+ 
+ import re
+ 
+-_NUMBER = r"[0-9]+"
++_NUMBER = r"(?:0|[1-9][0-9]*)"
+ _FULL = re.compile(rf"{_NUMBER}\.{_NUMBER}\.{_NUMBER}")
+ _PARTIAL = re.compile(rf"{_NUMBER}(?:\.{_NUMBER}){{0,2}}")
+ _COMPARATOR = re.compile(r"(>=|<=|>|<|=|\^|~)?(.+)")
+@@ -37,12 +37,17 @@ def _comparator(token):
+     if operator == "<":
+         return lambda version: version < base
+     if operator == "<=":
+-        return lambda version: version < base
++        return lambda version: version <= base
+     if operator == "^":
+         major, minor, patch = base
+-        upper = (major + 1, 0, 0)
++        if major:
++            upper = (major + 1, 0, 0)
++        elif minor:
++            upper = (0, minor + 1, 0)
++        else:
++            upper = (0, 0, patch + 1)
+     else:
+-        upper = (base[0] + 1, 0, 0)
++        upper = (base[0], base[1] + 1, 0)
+     return lambda version: base <= version < upper
+ 
+ 
+diff --git a/test_extra.py b/test_extra.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4f87bd94d6c5336014fa07d81ffb0272197f41fc
+--- /dev/null
++++ b/test_extra.py
+@@ -0,0 +1,98 @@
++import unittest
++
++from solution import satisfies
++
++
++def raises(case, version, spec):
++    with case.assertRaises(ValueError):
++        satisfies(version, spec)
++
++
++class TestSpec(unittest.TestCase):
++    def test_equality(self):
++        self.assertTrue(satisfies("1.2.3", "=1.2.3"))
++        self.assertFalse(satisfies("1.2.3", "=1.2.4"))
++        self.assertTrue(satisfies("1.2.0", "=1.2"))
++        self.assertTrue(satisfies("1.2.0", "1.2"))
++        self.assertFalse(satisfies("1.2.1", "1.2"))
++
++    def test_comparisons(self):
++        self.assertTrue(satisfies("1.2.3", ">=1.2.3"))
++        self.assertTrue(satisfies("1.2.3", "<=1.2.3"))
++        self.assertFalse(satisfies("1.2.3", "<1.2.3"))
++        self.assertFalse(satisfies("1.2.3", ">1.2.3"))
++        self.assertTrue(satisfies("1.2.4", ">1.2.3"))
++        self.assertTrue(satisfies("1.2.3", ">=1.2"))
++        self.assertFalse(satisfies("1.2.0", ">1.2"))
++
++    def test_caret(self):
++        self.assertTrue(satisfies("1.2.3", "^1.2.3"))
++        self.assertTrue(satisfies("1.9.9", "^1.2.3"))
++        self.assertFalse(satisfies("2.0.0", "^1.2.3"))
++        self.assertFalse(satisfies("1.2.2", "^1.2.3"))
++        self.assertTrue(satisfies("0.2.9", "^0.2.3"))
++        self.assertFalse(satisfies("0.3.0", "^0.2.3"))
++        self.assertTrue(satisfies("0.0.3", "^0.0.3"))
++        self.assertFalse(satisfies("0.0.4", "^0.0.3"))
++        self.assertTrue(satisfies("0.0.0", "^0.0.0"))
++        self.assertFalse(satisfies("0.0.1", "^0.0.0"))
++        self.assertTrue(satisfies("1.5.0", "^1"))
++        self.assertFalse(satisfies("2.0.0", "^1"))
++
++    def test_tilde(self):
++        self.assertTrue(satisfies("1.2.3", "~1.2.3"))
++        self.assertTrue(satisfies("1.2.9", "~1.2.3"))
++        self.assertFalse(satisfies("1.3.0", "~1.2.3"))
++        self.assertFalse(satisfies("1.2.2", "~1.2.3"))
++        self.assertTrue(satisfies("1.0.5", "~1"))
++        self.assertFalse(satisfies("1.1.0", "~1"))
++        self.assertTrue(satisfies("0.0.9", "~0.0.3"))
++        self.assertFalse(satisfies("0.1.0", "~0.0.3"))
++
++    def test_star_and_alternatives(self):
++        self.assertTrue(satisfies("9.9.9", "*"))
++        self.assertTrue(satisfies("1.2.3", ">1.0.0 *"))
++        self.assertFalse(satisfies("1.2.3", ">1.2.3 *"))
++        self.assertTrue(satisfies("1.2.3", ">=2.0.0 || 1.2.3"))
++        self.assertFalse(satisfies("1.2.3", ">=2.0.0 || >1.2.3"))
++        self.assertTrue(satisfies("1.2.3", "  >=1.0.0   <2.0.0  "))
++
++    def test_malformed(self):
++        for spec in [
++            "",
++            "   ",
++            "||",
++            "1.2.3 ||",
++            "|| 1.2.3",
++            "1.2.3 ||  || 2.0.0",
++            ">=",
++            ">= 1.2.3",
++            "= 1.2.3",
++            "^ 1.2.3",
++            "~ 1.2.3",
++            "!=1.2.3",
++            "=01.2.3",
++            "1.02.3",
++            "1.2.03",
++            "01.2.3",
++            "1.2.3.4",
++            ">=1.2.3.4",
++            "^1.2.3.4",
++            "1.2.x",
++            "1.2.a",
++            "=*",
++            "**",
++            "1.2.3 || 1.2.3.4",
++            "1.2.3 || !1.2.3",
++            "1..3",
++            ".",
++            ">",
++            "1.2.3,",
++        ]:
++            raises(self, "1.2.3", spec)
++        for version in ["1.2", "1.2.3.4", "01.2.3", "1.2.03", "v1.2.3", "1.2.x", "", " 1.2.3"]:
++            raises(self, version, "*")
++
++
++if __name__ == "__main__":
++    unittest.main()

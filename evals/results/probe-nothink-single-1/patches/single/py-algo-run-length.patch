@@ -1,0 +1,29 @@
+diff --git a/solution.py b/solution.py
+index d6da04fd06dc898e4a378fcfa12e132fddd8e9b5..a85905c5a64d8bb337771c98cf47f906f69f270c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,22 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def encode(text: str) -> list[list]:
+-    raise NotImplementedError
++    """Run-length encode ``text`` into a list of [character, count] pairs."""
++    if not text:
++        return []
++    pairs = []
++    current = text[0]
++    count = 1
++    for char in text[1:]:
++        if char == current:
++            count += 1
++        else:
++            pairs.append([current, count])
++            current = char
++            count = 1
++    pairs.append([current, count])
++    return pairs
+ 
+ def decode(pairs: list[list]) -> str:
+-    raise NotImplementedError
++    """Rebuild the original string from [character, count] pairs."""
++    return "".join(char * count for char, count in pairs)
+ 

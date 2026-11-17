@@ -1,0 +1,78 @@
+diff --git a/solution.go b/solution.go
+index cf84787a90e913c25adb87b6d680e871d72979c4..8bc1ba1d78abf3424578b6f1f5f0d96a864e9b0e 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,7 +1,72 @@
+ package solution
+ 
++import "sort"
++
++// maxInt is the largest value representable by an int.
++const maxInt = int(^uint(0) >> 1)
++
+ // Merge combines overlapping or touching closed intervals and returns them
+ // sorted by start. The input slices must not be modified.
+ func Merge(intervals [][]int) [][]int {
+-	panic("not implemented")
++	if len(intervals) == 0 {
++		return [][]int{}
++	}
++
++	// Work on a shallow copy of the outer slice: sorting the copy never
++	// reorders the caller's slice, and the inner slices are only read.
++	work := make([][]int, 0, len(intervals))
++	for _, iv := range intervals {
++		var lo, hi int
++		switch len(iv) {
++		case 0:
++			// Nothing to merge; skip entries with no bounds.
++			continue
++		case 1:
++			// Treat a single bound as a zero-width closed interval.
++			lo, hi = iv[0], iv[0]
++		default:
++			lo, hi = iv[0], iv[1]
++		}
++
++		if lo > hi {
++			lo, hi = hi, lo
++		}
++		work = append(work, []int{lo, hi})
++	}
++
++	if len(work) == 0 {
++		return [][]int{}
++	}
++
++	sort.Slice(work, func(i, j int) bool {
++		if work[i][0] != work[j][0] {
++			return work[i][0] < work[j][0]
++		}
++		return work[i][1] < work[j][1]
++	})
++
++	merged := make([][]int, 0, len(work))
++	cur := []int{work[0][0], work[0][1]}
++	for _, iv := range work[1:] {
++		if touches(cur, iv) {
++			if iv[1] > cur[1] {
++				cur[1] = iv[1]
++			}
++			continue
++		}
++		merged = append(merged, cur)
++		cur = []int{iv[0], iv[1]}
++	}
++	merged = append(merged, cur)
++
++	return merged
++}
++
++// touches reports whether the sorted, start-ordered interval iv overlaps or
++// abuts cur, without overflowing when hi is already maxInt.
++func touches(cur, iv []int) bool {
++	if iv[0] <= cur[1] {
++		return true
++	}
++	return cur[1] != maxInt && iv[0] == cur[1]+1
+ }

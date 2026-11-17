@@ -1,0 +1,92 @@
+diff --git a/solution.go b/solution.go
+index 3507b0ba8185767987c26150e9b83ba36159f5e2..d33719753837cb6605cad8f13de74713baa630cf 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,6 +1,10 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"fmt"
++	"sort"
++)
+ 
+ // ErrCycle is returned when the graph contains a cycle.
+ var ErrCycle = errors.New("graph contains a cycle")
+@@ -9,5 +13,74 @@ var ErrCycle = errors.New("graph contains a cycle")
+ // alphabetically smaller name. It returns ErrCycle for a cyclic graph and an
+ // error naming the node when an edge references an unknown node.
+ func TopoOrder(nodes []string, edges [][2]string) ([]string, error) {
+-	panic("not implemented")
++	// Deduplicate while preserving the caller's intent that each name is one
++	// node; repeated names would otherwise be emitted more than once.
++	seen := make(map[string]bool, len(nodes))
++	unique := make([]string, 0, len(nodes))
++	for _, n := range nodes {
++		if !seen[n] {
++			seen[n] = true
++			unique = append(unique, n)
++		}
++	}
++
++	// Validate every edge before doing any work so the failure mode does not
++	// depend on map iteration order.
++	for _, e := range edges {
++		for _, name := range e {
++			if !seen[name] {
++				return nil, fmt.Errorf("edge references unknown node %q", name)
++			}
++		}
++	}
++
++	indegree := make(map[string]int, len(unique))
++	successors := make(map[string][]string, len(unique))
++	for _, n := range unique {
++		indegree[n] = 0
++	}
++	for _, e := range edges {
++		from, to := e[0], e[1]
++		// Parallel edges are kept as-is: each one increments the in-degree and
++		// is decremented again when its source is emitted.
++		successors[from] = append(successors[from], to)
++		indegree[to]++
++	}
++
++	// The frontier holds every currently-available node, kept sorted so the
++	// alphabetically smallest candidate is always popped first.
++	var ready []string
++	for _, n := range unique {
++		if indegree[n] == 0 {
++			ready = insertSorted(ready, n)
++		}
++	}
++
++	order := make([]string, 0, len(unique))
++	for len(ready) > 0 {
++		n := ready[0]
++		ready = ready[1:]
++		order = append(order, n)
++
++		for _, next := range successors[n] {
++			indegree[next]--
++			if indegree[next] == 0 {
++				ready = insertSorted(ready, next)
++			}
++		}
++	}
++
++	if len(order) != len(unique) {
++		return nil, ErrCycle
++	}
++	return order, nil
++}
++
++// insertSorted inserts name into the sorted slice s, keeping it ascending.
++func insertSorted(s []string, name string) []string {
++	i := sort.SearchStrings(s, name)
++	s = append(s, "")
++	copy(s[i+1:], s[i:])
++	s[i] = name
++	return s
+ }

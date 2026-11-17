@@ -118,18 +118,36 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+# A cell name selects the collaboration topology. Without this mapping every
+# cell ran the same command and differed only in its directory name.
+CELL_SETTINGS = {
+    "single": ("single", False),
+    "single-review": ("single-review", True),
+    "pipeline": ("pipeline", True),
+}
+
+
+def cell_settings(cell: str, args) -> tuple[str, bool]:
+    """Return (orchestrate, review) for a cell; explicit flags still win."""
+    orchestrate, review = CELL_SETTINGS.get(cell, ("", False))
+    return args.orchestrate or orchestrate, args.review or review
+
+
 def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environment: dict) -> dict:
     """Run one task in one cell and grade it; return the recorded outcome."""
     task_dir = run_dir / cell / task["id"]
     task_dir.mkdir(parents=True, exist_ok=True)
     grade_path = task_dir / "grade.json"
+    orchestrate, review = cell_settings(cell, args)
 
     prompt_file = task_dir / "prompt.txt"
     prompt_file.write_text(task["prompt"] + "\n", encoding="utf-8")
-    contract = lite_lib.write_contract(task, task_dir / "contract.json", args.python_exe, review=args.review)
+    contract = lite_lib.write_contract(task, task_dir / "contract.json", args.python_exe, review=review)
     record = {
         "id": task["id"],
         "cell": cell,
+        "orchestrate": orchestrate,
+        "review": review,
         "language": task["language"],
         "kind": task["kind"],
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -159,13 +177,15 @@ def run_task(task: dict, cell: str, run_dir: Path, binary: Path, args, environme
             "--max-steps", str(args.max_steps),
             "--max-tokens", str(args.max_tokens),
             "--max-model-calls", str(args.max_model_calls),
-            "--provider-retries", "0",
+            "--provider-retries", str(args.provider_retries),
             "--timeout", f"{args.timeout_sec}s",
             "--reviewer-provider", args.reviewer_provider,
+            "--thinking", args.thinking,
+            "--reasoning-effort", args.reasoning_effort,
         ]
-        if args.orchestrate:
-            command += ["--orchestrate", args.orchestrate]
-        if args.review:
+        if orchestrate:
+            command += ["--orchestrate", orchestrate]
+        if review:
             command += ["--strict-reviewer-max-steps", str(args.strict_reviewer_max_steps)]
 
         started = time.time()
@@ -277,7 +297,7 @@ def write_report(run_dir: Path, report: dict, context: dict) -> None:
 
 
 def select_tasks(args) -> list[dict]:
-    tasks = lite_lib.iter_tasks()
+    tasks = lite_lib.iter_tasks(Path(args.tasks_dir)) if args.tasks_dir else lite_lib.iter_tasks()
     if args.tasks:
         wanted = {name.strip() for name in args.tasks.split(",") if name.strip()}
         known = {task["id"] for task in tasks}
@@ -299,8 +319,9 @@ def main() -> int:
     parser.add_argument("--cells", default="single",
                         help="comma-separated cells: single,single-review,pipeline")
     parser.add_argument("--tasks", default="", help="comma-separated task ids (default: all)")
+    parser.add_argument("--tasks-dir", default="", help="task directory root (default: evals/lite/tasks)")
     parser.add_argument("--language", default="", choices=["", "python", "go"])
-    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix"])
+    parser.add_argument("--kind", default="", choices=["", "algo", "module", "bugfix", "hard", "audit", "swe"])
     parser.add_argument("--limit", type=int, default=0, help="run only the first N selected tasks")
     parser.add_argument("--run-id", default="", help="output directory name (default: timestamp)")
     parser.add_argument("--label", default="", help="recorded in the report for identification")
@@ -319,6 +340,11 @@ def main() -> int:
     parser.add_argument("--timeout-sec", type=int, default=300)
     parser.add_argument("--context-strategy", default="bounded")
     parser.add_argument("--context-budget", type=int, default=6000)
+    parser.add_argument("--thinking", default="enabled", choices=["enabled", "disabled"],
+                        help="developer thinking mode, applied to every cell alike")
+    parser.add_argument("--reasoning-effort", default="high", choices=["low", "high", "max"])
+    parser.add_argument("--provider-retries", type=int, default=0,
+                        help="extra HTTP attempts after a transient provider error (0 keeps request counts exact)")
     parser.add_argument("--skip-preflight", action="store_true")
     parser.add_argument("--demo", action="store_true",
                         help="offline plumbing check with the demo model (expects every task to fail)")
@@ -356,7 +382,7 @@ def main() -> int:
         reviewer_provider = args.reviewer_provider or reviewer_slot
         if not args.skip_preflight:
             preflight(developer_env, "developer")
-            if args.review or args.orchestrate in ("single-review", "pipeline"):
+            if any(cell_settings(cell.strip(), args)[1] for cell in args.cells.split(",")):
                 preflight(reviewer_env, "reviewer")
     # run_task reads the resolved provider names off args.
     args.provider = provider
@@ -403,6 +429,9 @@ def main() -> int:
         "timeout_sec": args.timeout_sec,
         "context_strategy": args.context_strategy,
         "context_budget": args.context_budget,
+        "thinking": args.thinking,
+        "reasoning_effort": args.reasoning_effort,
+        "provider_retries": args.provider_retries,
     }
     report = summarize(run_dir, cells)
     write_report(run_dir, report, context)

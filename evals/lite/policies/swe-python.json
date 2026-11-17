@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {"id": "python-pytest", "tool": "exec", "command_prefix": ["python", "-m", "pytest"], "decision": "allow", "reason": "Run the repository's tests unattended."},
+    {"id": "python3-pytest", "tool": "exec", "command_prefix": ["python3", "-m", "pytest"], "decision": "allow", "reason": "Run the repository's tests unattended."},
+    {"id": "python-inline", "tool": "exec", "command_prefix": ["python", "-c"], "decision": "allow", "reason": "Reproduce an issue with a short script inside the throwaway workspace."},
+    {"id": "python3-inline", "tool": "exec", "command_prefix": ["python3", "-c"], "decision": "allow", "reason": "Reproduce an issue with a short script inside the throwaway workspace."},
+    {"id": "python-bin-test", "tool": "exec", "command_prefix": ["python", "bin/test"], "decision": "allow", "reason": "The repository's own test runner."},
+    {"id": "python3-bin-test", "tool": "exec", "command_prefix": ["python3", "bin/test"], "decision": "allow", "reason": "The repository's own test runner."},
+    {"id": "git-diff", "tool": "exec", "command_prefix": ["git", "diff"], "decision": "allow", "reason": "Read-only view of the working changes."},
+    {"id": "git-status", "tool": "exec", "command_prefix": ["git", "status"], "decision": "allow", "reason": "Read-only view of the working changes."}
+  ]
+}

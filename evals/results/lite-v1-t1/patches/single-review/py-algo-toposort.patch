@@ -1,0 +1,48 @@
+diff --git a/solution.py b/solution.py
+index c15f321d6632d4e1c64962542ef537ae3670aa82..d7ab9f8fb6aaeb8d5d41c9af7cc13b585b6e7df8 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,42 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import heapq
++
++
+ def topological_order(nodes: list, edges: list):
+-    raise NotImplementedError
++    """Order nodes so every edge (source, target) has source before target.
++
++    Ties are broken by picking the alphabetically smallest available node.
++    Returns None if the graph contains a cycle and raises ValueError if an
++    edge references a node that is not part of ``nodes``.
++    """
++    order_nodes = list(dict.fromkeys(nodes))
++    known = set(order_nodes)
++
++    indegree = dict.fromkeys(order_nodes, 0)
++    successors = {node: [] for node in order_nodes}
++
++    for edge in edges:
++        source, target = edge
++        if source not in known:
++            raise ValueError(f"edge references unknown node: {source!r}")
++        if target not in known:
++            raise ValueError(f"edge references unknown node: {target!r}")
++        successors[source].append(target)
++        indegree[target] += 1
++
++    available = [node for node in order_nodes if indegree[node] == 0]
++    heapq.heapify(available)
++
++    result = []
++    while available:
++        node = heapq.heappop(available)
++        result.append(node)
++        for successor in successors[node]:
++            indegree[successor] -= 1
++            if indegree[successor] == 0:
++                heapq.heappush(available, successor)
++
++    if len(result) != len(order_nodes):
++        return None
++    return result
+ 

@@ -1,0 +1,22 @@
+diff --git a/scratch/repro.py b/scratch/repro.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1d0c34eaa213994fc1301db08adee8e793a57988
+--- /dev/null
++++ b/scratch/repro.py
+@@ -0,0 +1,16 @@
++from sympy import *
++x = symbols('x')
++E = sympify('-117968192370600*18**(1/3)/(217603955769048*(24201 + 253*sqrt(9165))**(1/3) + 2273005839412*sqrt(9165)*(24201 + 253*sqrt(9165))**(1/3)) - 15720318185*2**(2/3)*3**(1/3)*(24201 + 253*sqrt(9165))**(2/3)/(217603955769048*(24201 + 253*sqrt(9165))**(1/3) + 2273005839412*sqrt(9165)*(24201 + 253*sqrt(9165))**(1/3)) + 15720318185*12**(1/3)*(24201 + 253*sqrt(9165))**(2/3)/(217603955769048*(24201 + 253*sqrt(9165))**(1/3) + 2273005839412*sqrt(9165)*(24201 + 253*sqrt(9165))**(1/3)) + 117968192370600*2**(1/3)*3**(2/3)/(217603955769048*(24201 + 253*sqrt(9165))**(1/3) + 2273005839412*sqrt(9165)*(24201 + 253*sqrt(9165))**(1/3))')
++f = Poly(E, x)
++print('f.rep:', repr(f.rep))
++coeff, bad = f.clear_denoms()
++print('coeff:', coeff)
++print('bad:', bad, repr(bad.rep), bad.as_dict(), bad.is_zero, bad.as_expr())
++try:
++    print('terms_gcd:', bad.terms_gcd())
++except Exception as e:
++    print('terms_gcd FAILED:', type(e).__name__, e)
++try:
++    print('primitive:', bad.primitive())
++except Exception as e:
++    print('primitive FAILED:', type(e).__name__, e)

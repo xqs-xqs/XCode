@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "py-hard-template",
+  "language": "python",
+  "kind": "hard",
+  "prompt": "Implement `render(template, values)` in solution.py and return a string. A placeholder `{name}` is replaced by str() of `values[name]`. A dotted name such as `{user.name}` walks nested dicts. `{{` and `}}` produce a literal `{` and `}`. Filters follow the name after a `|` and are applied left to right to the string value: `upper`, `lower`, `title` (str.title) and `trim` (strip surrounding whitespace), as in `{name|trim|upper}`. Whitespace around the name and around filter names is ignored (`{ name | upper }`). Each segment of a name consists of letters, digits and underscores and must not be empty. Raise KeyError when a name segment is missing or when a value that must be walked into is not a dict. Raise ValueError for an unknown filter, an empty filter, an empty placeholder, a malformed name, a `{` without a closing `}`, and a lone `}` outside a placeholder. Text outside placeholders is copied unchanged.",
+  "acceptance": [
+    "doubled braces are literals",
+    "filters apply left to right to the string value",
+    "missing names raise KeyError, malformed templates raise ValueError"
+  ],
+  "tags": [
+    "spec-heavy"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

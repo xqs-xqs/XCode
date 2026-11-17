@@ -15,7 +15,9 @@ Orchestrator (main agent)
   └─ delegate → reviewer   independent check, returns pass / issues
 ```
 
-**Role separation.** The three built-in roles each carry their own instructions: the planner only decomposes and never edits; the developer edits code and runs verification; the reviewer only looks at the code and the final state of the workspace. Roles can be customized via `.xcode/skills/<role>.md`.
+**Role separation.** The three built-in roles each carry their own instructions: the planner only decomposes and never edits; the developer edits code and runs verification; the reviewer only looks at the code and the final state of the workspace. The separation is enforced by each role's tool set, not only by its instructions: the planner gets the read-only tools plus `exec` and has no edit tool, the developer gets everything except `delegate`, and the reviewer gets the read-only tools only. Roles can be customized via `.xcode/skills/<role>.md`; custom roles keep the full tool set.
+
+A step-by-step example with a small buggy package is in [demo/README.md](demo/README.md).
 
 **Context isolation.** Every delegate creates a brand-new subagent: its own conversation history, its own step budget, no inherited parent context, and only a summary of conclusions is returned. This is deliberate — the reviewer cannot see the developer's reasoning, which is what makes its judgment genuinely independent.
 
@@ -104,7 +106,7 @@ The positional argument is the task description; wrap the whole sentence in quot
 bin/xcode.exe --workspace D:/path/to/repo "fix the login timeout bug, then get go test passing"
 ```
 
-Each step is shown live while running: which files were read, which commands ran, policy decisions and approvals. When it finishes, the stop reason and this run's token usage are printed.
+Each step is shown live while running: which files were read, which commands ran, policy decisions and approvals. A sub-agent's start and result appear as `[agent] sub-N <role> spawned / returned`, and its own steps are indented and tagged `[sub-N <role>]`. When it finishes, the stop reason and this run's token usage are printed.
 
 ### Interactive mode (multi-turn conversation)
 
@@ -166,6 +168,8 @@ When the model claims completion, XCode actually runs `verify_commands` in the c
 The new external evaluation entry point and the staged implementation notes are in [evals/README.md](evals/README.md). It runs the real CLI, saves failure results, accounts for main/sub-agent and summary model budgets uniformly, and provides Harbor adaptation and full patch export.
 
 Every graded run so far is tabulated in [evals/EVAL_RESULTS.md](evals/EVAL_RESULTS.md): per-task verdicts, the binary each arm used, and the known limits of each comparison. The raw trajectories, patches and grader output behind those numbers are published as a release asset.
+
+Two lighter lines need no Docker: [evals/lite/](evals/lite/README.md) runs small local tasks graded by hidden tests, and `evals/swe_native/` grades SWE-bench Verified sympy tasks on the host. Their results are exported to [evals/results/](evals/results/README.md). On every task set run so far, single agent, single agent plus review and the pipeline solve about the same number of tasks; they differ in token cost.
 
 The `xcode eval` below is an internal small-task regression; it cannot be used to claim real-repository capability or enterprise-grade reliability. The demo model only checks that the pipeline is wired up.
 

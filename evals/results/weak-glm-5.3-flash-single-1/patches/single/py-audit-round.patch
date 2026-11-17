@@ -1,0 +1,72 @@
+diff --git a/solution.py b/solution.py
+index 7021f49f3df24d034e979383d41c3fbf57fdc15b..0e5bf558115c8d5d79af32e56b54a0855ea6e5d5 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,17 +1,60 @@
+ """Exact half-even rounding of decimal strings."""
+ 
+ import re
+-from decimal import ROUND_HALF_UP, Decimal, localcontext
+ 
+-_NUMBER = re.compile(r"[-+]?[0-9]+(?:\.[0-9]+)?")
++_NUMBER = re.compile(r"(-)?([0-9]+)(?:\.([0-9]+))?")
++
++
++def _add_one(digits: str) -> str:
++    """Increment a plain digit string by one, growing it on carry."""
++    out = list(digits)
++    i = len(out) - 1
++    while i >= 0:
++        if out[i] == "9":
++            out[i] = "0"
++            i -= 1
++        else:
++            out[i] = chr(ord(out[i]) + 1)
++            break
++    else:
++        out.insert(0, "1")
++    return "".join(out)
+ 
+ 
+ def round_decimal(text: str, places: int) -> str:
+     if places < 0:
+         raise ValueError("places must not be negative")
+-    if not isinstance(text, str) or _NUMBER.fullmatch(text) is None:
++    match = _NUMBER.fullmatch(text) if isinstance(text, str) else None
++    if match is None:
+         raise ValueError(f"malformed number {text!r}")
+-    with localcontext() as context:
+-        value = Decimal(text).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+-    rendered = format(value, "f")
+-    return rendered
++    negative = match.group(1) is not None
++    int_part = match.group(2)
++    frac_part = match.group(3) or ""
++
++    # Magnitude digits, split from the right into the integer part and
++    # exactly `places` fraction digits. All arithmetic is done on decimal
++    # digit strings, so no binary floating point is involved and inputs of
++    # any length are handled exactly.
++    if places >= len(frac_part):
++        digits = int_part + frac_part + "0" * (places - len(frac_part))
++    else:
++        digits = int_part + frac_part[:places]
++        dropped = frac_part[places]
++        rest = frac_part[places + 1:]
++        if dropped > "5" or (dropped == "5" and any(c != "0" for c in rest)):
++            digits = _add_one(digits)
++        elif dropped == "5" and digits[-1] in "13579":
++            # Exact halfway case: round towards the even neighbour.
++            digits = _add_one(digits)
++
++    if places:
++        int_digits = digits[:-places]
++        frac_digits = digits[-places:]
++    else:
++        int_digits = digits
++        frac_digits = ""
++
++    int_digits = int_digits.lstrip("0") or "0"
++    is_zero = int_digits == "0" and not frac_digits.strip("0")
++    body = int_digits if places == 0 else f"{int_digits}.{frac_digits}"
++    return f"-{body}" if negative and not is_zero else body

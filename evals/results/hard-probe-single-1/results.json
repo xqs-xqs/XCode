@@ -1,0 +1,232 @@
+{
+  "settings": {
+    "run_id": "hard-probe-single-1",
+    "label": "difficulty probe, single only",
+    "binary_sha256": "9f92ae71ce9d703707fa024614ad66460af4b3a9d41d10ee0e2ee97d858db545",
+    "git_revision": "d6e7030f793e73f19ce3751743d99f22057d5e44",
+    "developer": "deepseek/deepseek-v4-flash",
+    "reviewer": "glm/glm-5.3",
+    "cells": {
+      "single": {
+        "total": 12,
+        "resolved": 11,
+        "errors": 0,
+        "by_kind": {
+          "hard": {
+            "total": 12,
+            "resolved": 11
+          }
+        },
+        "by_language": {
+          "python": {
+            "total": 12,
+            "resolved": 11
+          }
+        }
+      }
+    },
+    "max_tokens": 200000,
+    "max_model_calls": 60,
+    "max_steps": 40,
+    "timeout_sec": 600,
+    "thinking": "enabled",
+    "reasoning_effort": "high",
+    "generated_at": "2026-11-16T11:48:34.517219+00:00"
+  },
+  "cells": {
+    "single": [
+      {
+        "id": "py-hard-allocate",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 55998,
+        "calls": 14,
+        "wall": 41.2,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-duration",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 10410,
+        "calls": 4,
+        "wall": 18.6,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-expr",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 15659,
+        "calls": 4,
+        "wall": 38.9,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-intervals",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 50012,
+        "calls": 11,
+        "wall": 54.1,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-order",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 11915,
+        "calls": 4,
+        "wall": 28.0,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-ranges",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 9341,
+        "calls": 4,
+        "wall": 19.6,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-roman",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 13530,
+        "calls": 5,
+        "wall": 23.9,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-round",
+        "resolved": false,
+        "grade_status": "failed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 12325,
+        "calls": 4,
+        "wall": 32.6,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-semver",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 83912,
+        "calls": 14,
+        "wall": 67.0,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-table",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 59820,
+        "calls": 15,
+        "wall": 42.7,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-template",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "failed",
+        "claimed": false,
+        "tokens": 15269,
+        "calls": 5,
+        "wall": 28.7,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 0,
+        "spawned": 0,
+        "degraded": 0
+      },
+      {
+        "id": "py-hard-wrap",
+        "resolved": true,
+        "grade_status": "passed",
+        "stop_reason": "completed",
+        "claimed": true,
+        "tokens": 24119,
+        "calls": 8,
+        "wall": 35.8,
+        "blocked_verify": 0,
+        "blocked_review": 0,
+        "blocked_other": 0,
+        "gate_passed": 1,
+        "spawned": 0,
+        "degraded": 0
+      }
+    ]
+  }
+}

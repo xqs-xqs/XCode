@@ -1,0 +1,318 @@
+diff --git a/fuzz_check.py b/fuzz_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..782c2b155399ff658e73ac67f12ad43f7307e07d
+--- /dev/null
++++ b/fuzz_check.py
+@@ -0,0 +1,124 @@
++"""Temporary differential check of solution.evaluate against a reference."""
++
++import ast
++import random
++import sys
++
++import solution
++
++
++def ref(source):
++    tree = ast.parse(source, mode="eval")
++    return ev(tree)
++
++
++def ev(node):
++    if isinstance(node, ast.Expression):
++        return ev(node.body)
++    if isinstance(node, ast.Constant):
++        return node.value
++    if isinstance(node, ast.UnaryOp):
++        assert isinstance(node.op, ast.USub)
++        return -ev(node.operand)
++    if isinstance(node, ast.BinOp):
++        left, right = ev(node.left), ev(node.right)
++        op = node.op
++        if isinstance(op, ast.Add):
++            return left + right
++        if isinstance(op, ast.Sub):
++            return left - right
++        if isinstance(op, ast.Mult):
++            return left * right
++        if isinstance(op, ast.FloorDiv):
++            if right == 0:
++                raise ZeroDivisionError
++            return left // right
++        if isinstance(op, ast.Mod):
++            if right == 0:
++                raise ZeroDivisionError
++            return left % right
++        if isinstance(op, ast.Pow):
++            if right < 0:
++                raise ValueError
++            return left ** right
++    raise ValueError("unsupported")
++
++
++def gen(depth=0):
++    """Return a list of token strings for a random expression."""
++    r = random.random()
++    if depth >= 3 or r < 0.35:
++        return [str(random.randint(0, 5))]
++    if r < 0.45:
++        return ["-"] + gen(depth + 1)
++    if r < 0.55:
++        return ["("] + gen(depth + 1) + [")"]
++    op = random.choice(["+", "-", "*", "//", "%", "**"])
++    left = gen(depth + 1)
++    if op == "**":
++        exponent = gen(depth + 1)
++        while "**" in exponent or "//" in exponent or "%" in exponent:
++            exponent = gen(depth + 1)
++        return left + ["**"] + exponent
++    return left + [op] + gen(depth + 1)
++
++
++def render(tokens):
++    out = []
++    for tok in tokens:
++        if out and random.random() < 0.6:
++            out.append(" ")
++        out.append(tok)
++    return "".join(out)
++
++
++def outcome(fn, source):
++    try:
++        return ("ok", fn(source))
++    except ZeroDivisionError:
++        return ("zerodiv", None)
++    except ValueError:
++        return ("value", None)
++    except Exception as exc:  # pragma: no cover
++        return (type(exc).__name__, str(exc))
++
++
++random.seed(1234)
++mismatches = 0
++for _ in range(4000):
++    tokens = gen()
++    source = render(tokens)
++    expected = outcome(ref, source)
++    if expected == ("ok", None) or (expected[0] == "ok" and isinstance(expected[1], float)):
++        continue
++    if expected[0] == "ok" and abs(expected[1]) > 10 ** 12:
++        continue
++    actual = outcome(solution.evaluate, source)
++    if actual != expected:
++        mismatches += 1
++        print("MISMATCH", repr(source), "expected", expected, "actual", actual)
++        if mismatches > 10:
++            break
++print("fuzz mismatches:", mismatches)
++
++cases = [
++    ("", "value"), ("  ", "value"), ("1 2", "value"), ("1 / 2", "value"),
++    ("+1", "value"), ("1 + +2", "value"), ("(1", "value"), ("1)", "value"),
++    ("1 +", "value"), ("*1", "value"), ("1 // 0", "zerodiv"),
++    ("1 % 0", "zerodiv"), ("2 ** -1", "value"), ("2 ** (0-1)", "value"),
++    ("1\t+2", "value"), ("1\n", "value"), ("1 * * 2", "value"),
++    ("1 **\t2", "value"), ("()", "value"), ("-2 ** 2 ** 2", "ok"),
++    ("-7 % 3", "ok"), ("-7 // 3", "ok"), ("2 ** 3 ** 2", "ok"),
++    ("-2 ** 2", "ok"), ("2 ** -2 ** 2", "value"), ("--2", "ok"),
++    ("(-2) ** 2", "ok"), ("  7  ", "ok"), ("1 2 * 3", "value"),
++]
++bad = 0
++for source, kind in cases:
++    actual = outcome(solution.evaluate, source)[0]
++    if actual != kind:
++        bad += 1
++        print("CASE MISMATCH", repr(source), "expected", kind, "actual", actual)
++print("case mismatches:", bad)
++print("values:",
++      solution.evaluate("-7 % 3"), solution.evaluate("-7 // 3"),
++      solution.evaluate("-2**2"), solution.evaluate("2**3**2"))
+diff --git a/solution.py b/solution.py
+index d3ccdf7aba4b992a5827ea483441ad6d8ea1c498..70c173d216831f975b87d379825fccc889acb573 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,14 +1,13 @@
+ """A recursive-descent evaluator for integer arithmetic."""
+ 
+-import math
+ import re
+ 
+-_TOKEN = re.compile(r"\s*(?:([0-9]+)|(\*\*|//|[-+*%()]))")
++_TOKEN = re.compile(r" *(?:([0-9]+)|(\*\*|//|[-+*%()]))")
+ 
+ 
+ def _tokens(text):
+     tokens, position = [], 0
+-    stripped = text.rstrip()
++    stripped = text.rstrip(" ")
+     while position < len(stripped):
+         match = _TOKEN.match(stripped, position)
+         if match is None:
+@@ -50,9 +49,9 @@ class _Parser:
+             if operator == "*":
+                 value *= right
+             elif operator == "//":
+-                value = int(value / right)
++                value //= right
+             else:
+-                value = int(math.fmod(value, right))
++                value %= right
+         return value
+ 
+     def unary(self):
+@@ -66,6 +65,8 @@ class _Parser:
+         if self.peek() == "**":
+             self.take()
+             exponent = self.unary()
++            if exponent < 0:
++                raise ValueError("negative exponent")
+             return base ** exponent
+         return base
+ 
+@@ -84,4 +85,6 @@ class _Parser:
+ def evaluate(text: str) -> int:
+     parser = _Parser(_tokens(text))
+     value = parser.expression()
++    if parser.peek() is not None:
++        raise ValueError(f"unexpected token {parser.peek()!r}")
+     return value
+diff --git a/test_fuzz_check.py b/test_fuzz_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..dfb2b5c8ad78420515101457ba281b875ad48095
+--- /dev/null
++++ b/test_fuzz_check.py
+@@ -0,0 +1,133 @@
++"""Temporary differential check of solution.evaluate against a reference."""
++
++import ast
++import random
++import unittest
++
++import solution
++
++
++def ev(node):
++    if isinstance(node, ast.Expression):
++        return ev(node.body)
++    if isinstance(node, ast.Constant):
++        return node.value
++    if isinstance(node, ast.UnaryOp):
++        assert isinstance(node.op, ast.USub)
++        return -ev(node.operand)
++    if isinstance(node, ast.BinOp):
++        left, right = ev(node.left), ev(node.right)
++        op = node.op
++        if isinstance(op, ast.Add):
++            return left + right
++        if isinstance(op, ast.Sub):
++            return left - right
++        if isinstance(op, ast.Mult):
++            return left * right
++        if isinstance(op, ast.FloorDiv):
++            if right == 0:
++                raise ZeroDivisionError
++            return left // right
++        if isinstance(op, ast.Mod):
++            if right == 0:
++                raise ZeroDivisionError
++            return left % right
++        if isinstance(op, ast.Pow):
++            if right < 0:
++                raise ValueError
++            return left ** right
++    raise ValueError("unsupported")
++
++
++def ref(source):
++    return ev(ast.parse(source, mode="eval"))
++
++
++def gen(depth=0):
++    r = random.random()
++    if depth >= 3 or r < 0.35:
++        return [str(random.randint(0, 5))]
++    if r < 0.45:
++        return ["-"] + gen(depth + 1)
++    if r < 0.55:
++        return ["("] + gen(depth + 1) + [")"]
++    op = random.choice(["+", "-", "*", "//", "%", "**"])
++    left = gen(depth + 1)
++    if op == "**":
++        exponent = gen(depth + 1)
++        while any(t in ("**", "//", "%") for t in exponent):
++            exponent = gen(depth + 1)
++        return left + ["**"] + exponent
++    return left + [op] + gen(depth + 1)
++
++
++def render(tokens):
++    out = []
++    for tok in tokens:
++        if out and random.random() < 0.6:
++            out.append(" ")
++        out.append(tok)
++    return "".join(out)
++
++
++def outcome(fn, source):
++    try:
++        return ("ok", fn(source))
++    except ZeroDivisionError:
++        return ("zerodiv", None)
++    except ValueError:
++        return ("value", None)
++    except Exception as exc:  # pragma: no cover
++        return (type(exc).__name__, str(exc))
++
++
++class Differential(unittest.TestCase):
++    def test_fuzz(self):
++        random.seed(1234)
++        problems = []
++        for _ in range(3000):
++            source = render(gen())
++            expected = outcome(ref, source)
++            if expected[0] == "ok" and abs(expected[1]) > 10 ** 12:
++                continue
++            actual = outcome(solution.evaluate, source)
++            if actual != expected:
++                problems.append((source, expected, actual))
++                if len(problems) > 8:
++                    break
++        self.assertEqual(problems, [])
++
++    def test_cases(self):
++        cases = [
++            ("", "value"), ("  ", "value"), ("1 2", "value"), ("1 / 2", "value"),
++            ("+1", "value"), ("1 + +2", "value"), ("(1", "value"), ("1)", "value"),
++            ("1 +", "value"), ("*1", "value"), ("1 // 0", "zerodiv"),
++            ("1 % 0", "zerodiv"), ("2 ** -1", "value"), ("2 ** (0-1)", "value"),
++            ("1\t+2", "value"), ("1\n", "value"), ("1 * * 2", "value"),
++            ("1 **\t2", "value"), ("()", "value"), ("-2 ** 2 ** 2", "ok"),
++            ("-7 % 3", "ok"), ("-7 // 3", "ok"), ("2 ** 3 ** 2", "ok"),
++            ("-2 ** 2", "ok"), ("2 ** -2 ** 2", "value"), ("--2", "ok"),
++            ("(-2) ** 2", "ok"), ("  7  ", "ok"), ("1 2 * 3", "value"),
++            ("7 // 2 * 3", "ok"), ("2 * 3 % 4", "ok"), ("10 % 4 // 2", "ok"),
++            ("- -3", "ok"), ("-3 - -4", "ok"), ("2 ** 3 ** 0", "ok"),
++            ("1e5", "value"), ("0x10", "value"), ("1.5", "value"),
++        ]
++        problems = []
++        for source, kind in cases:
++            actual = outcome(solution.evaluate, source)[0]
++            if actual != kind:
++                problems.append((source, kind, actual))
++        self.assertEqual(problems, [])
++
++    def test_values(self):
++        self.assertEqual(solution.evaluate("-7 % 3"), 2)
++        self.assertEqual(solution.evaluate("-7 // 3"), -3)
++        self.assertEqual(solution.evaluate("-2**2"), -4)
++        self.assertEqual(solution.evaluate("2**3**2"), 512)
++        self.assertEqual(solution.evaluate("-2 ** 2 ** 2"), -16)
++        self.assertEqual(solution.evaluate("2 ** -0"), 1)
++        self.assertEqual(solution.evaluate("10 % 4 // 2"), 1)
++        self.assertEqual(solution.evaluate("7 // 2 * 3"), 9)
++        self.assertEqual(solution.evaluate("-(3)"), -3)
++        self.assertEqual(solution.evaluate("2 * -3"), -6)
++        self.assertEqual(solution.evaluate("2 - -3"), 5)

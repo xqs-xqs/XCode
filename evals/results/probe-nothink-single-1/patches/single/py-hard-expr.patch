@@ -1,0 +1,154 @@
+diff --git a/solution.py b/solution.py
+index 261821209d667415184ae3a849dad2f5898e48be..23b1170bd2d96ec3571771176f4281cf6e94a612 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,10 +1,145 @@
+-"""Implement the functions declared below; keep the signatures unchanged."""
++"""Integer arithmetic expression evaluator (tokenizer + recursive descent)."""
++
++_DIGITS = "0123456789"
++_SIMPLE_OPS = "+-%()"
++
++
+ def _tokens(text):
+-    raise NotImplementedError
++    """Split *text* into ("num", int) and ("op", str) tokens."""
++    if not isinstance(text, str):
++        raise ValueError("expression must be a string")
++    tokens = []
++    i = 0
++    n = len(text)
++    while i < n:
++        ch = text[i]
++        if ch == " ":
++            i += 1
++            continue
++        if ch in _DIGITS:
++            j = i
++            while j < n and text[j] in _DIGITS:
++                j += 1
++            tokens.append(("num", int(text[i:j])))
++            i = j
++            continue
++        if ch == "*":
++            if text.startswith("**", i):
++                tokens.append(("op", "**"))
++                i += 2
++            else:
++                tokens.append(("op", "*"))
++                i += 1
++            continue
++        if ch == "/":
++            if text.startswith("//", i):
++                tokens.append(("op", "//"))
++                i += 2
++                continue
++            raise ValueError("single '/' is not a valid operator")
++        if ch in _SIMPLE_OPS:
++            tokens.append(("op", ch))
++            i += 1
++            continue
++        raise ValueError("unknown character %r" % (ch,))
++    return tokens
++
+ 
+ class _Parser:
+-    pass
++    """Recursive descent parser/evaluator.
++
++    expr   := term (('+' | '-') term)*
++    term   := unary (('*' | '//' | '%') unary)*
++    unary  := '-' unary | power
++    power  := atom ['**' unary]        # right associative, ** over unary '-'
++    atom   := NUMBER | '(' expr ')'
++    """
++
++    def __init__(self, tokens):
++        self.tokens = tokens
++        self.pos = 0
++
++    def peek(self):
++        if self.pos < len(self.tokens):
++            return self.tokens[self.pos]
++        return None
++
++    def at_op(self, *ops):
++        tok = self.peek()
++        return tok is not None and tok[0] == "op" and tok[1] in ops
++
++    def parse(self):
++        if not self.tokens:
++            raise ValueError("empty expression")
++        value = self.expr()
++        if self.pos != len(self.tokens):
++            tok = self.tokens[self.pos]
++            raise ValueError("unexpected token %r" % (tok[1],))
++        return value
++
++    def expr(self):
++        value = self.term()
++        while self.at_op("+", "-"):
++            op = self.tokens[self.pos][1]
++            self.pos += 1
++            rhs = self.term()
++            value = value + rhs if op == "+" else value - rhs
++        return value
++
++    def term(self):
++        value = self.unary()
++        while self.at_op("*", "//", "%"):
++            op = self.tokens[self.pos][1]
++            self.pos += 1
++            rhs = self.unary()
++            if op == "*":
++                value = value * rhs
++            elif op == "//":
++                if rhs == 0:
++                    raise ZeroDivisionError("integer division or modulo by zero")
++                value = value // rhs
++            else:
++                if rhs == 0:
++                    raise ZeroDivisionError("integer division or modulo by zero")
++                value = value % rhs
++        return value
++
++    def unary(self):
++        if self.at_op("-"):
++            self.pos += 1
++            return -self.unary()
++        if self.at_op("+"):
++            raise ValueError("unary plus is not allowed")
++        return self.power()
++
++    def power(self):
++        base = self.atom()
++        if self.at_op("**"):
++            self.pos += 1
++            exponent = self.unary()
++            if exponent < 0:
++                raise ValueError("negative exponent is not allowed")
++            return base ** exponent
++        return base
++
++    def atom(self):
++        tok = self.peek()
++        if tok is None:
++            raise ValueError("missing operand")
++        kind, val = tok
++        if kind == "num":
++            self.pos += 1
++            return val
++        if val == "(":
++            self.pos += 1
++            value = self.expr()
++            if not self.at_op(")"):
++                raise ValueError("unbalanced parentheses")
++            self.pos += 1
++            return value
++        raise ValueError("unexpected token %r" % (val,))
++
+ 
+ def evaluate(text: str) -> int:
+-    raise NotImplementedError
++    return _Parser(_tokens(text)).parse()
+ 

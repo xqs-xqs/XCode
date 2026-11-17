@@ -1,0 +1,12 @@
+{
+  "goal": "Fix Mean in stats.go so that it returns the exact arithmetic mean.",
+  "acceptance": [
+    "go test ./... passes",
+    "Mean still returns ErrNoValues for an empty slice",
+    "CHANGELOG.md has a new entry under the Unreleased heading that describes the Mean fix"
+  ],
+  "review": true,
+  "verify_commands": [
+    { "name": "go test", "command": ["go", "test", "./..."] }
+  ]
+}

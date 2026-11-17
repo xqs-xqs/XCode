@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "py-audit-duration",
+  "language": "python",
+  "kind": "audit",
+  "prompt": "solution.py is meant to implement the specification below, but it contains several defects. One has been reported: `parse_duration(\"30m1h\")` returns 5400 instead of raising ValueError. Fix that and every other deviation from the specification. Keep the public names and signatures unchanged and do not change behaviour the specification requires.\n\nSpecification: Implement `parse_duration(text)` and `format_duration(seconds)` in solution.py. A duration is one or more parts written without spaces, each a non-negative decimal integer followed by a unit: w (7 days), d, h, m, s. Units are lower case, must appear in that order from largest to smallest, and each unit may appear at most once. A part may exceed its natural range (\"90m\" is valid) and may have leading zeros. `parse_duration` returns the total number of seconds and raises ValueError for anything else, including the empty string, a unit without a number, a number without a unit, an unknown unit, repeated or out-of-order units, signs, spaces and decimals. `format_duration` takes a non-negative int number of seconds and returns the canonical form: largest units first, zero parts omitted, every part within its natural range (d < 7, h < 24, m < 60, s < 60), and \"0s\" for zero. It raises ValueError for a negative value and TypeError for anything that is not an int (bool is rejected too).",
+  "acceptance": [
+    "units must be in descending order and unique",
+    "format output is canonical",
+    "bool is not an int here"
+  ],
+  "tags": [
+    "audit",
+    "seeded-defects"
+  ],
+  "verify_commands": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py"
+    ]
+  ],
+  "hidden_command": [
+    [
+      "{python}",
+      "-m",
+      "unittest",
+      "-v",
+      "test_visible.py",
+      "test_hidden.py"
+    ]
+  ]
+}

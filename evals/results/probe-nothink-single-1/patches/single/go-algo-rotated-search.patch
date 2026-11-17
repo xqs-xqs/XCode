@@ -1,0 +1,31 @@
+diff --git a/solution.go b/solution.go
+index f7d5583e6d2e3d528d4f331e5451ee892626856a..d25bbda31b8db61f1cd60eec14c6b30c2eb35f2d 100644
+--- a/solution.go
++++ b/solution.go
+@@ -3,5 +3,25 @@ package solution
+ // Search returns the index of target in a sorted, rotated slice of distinct
+ // integers, or -1 when the target is absent.
+ func Search(values []int, target int) int {
+-	panic("not implemented")
++	lo, hi := 0, len(values)-1
++	for lo <= hi {
++		mid := lo + (hi-lo)/2
++		switch {
++		case values[mid] == target:
++			return mid
++		case values[lo] <= values[mid]: // left half [lo, mid] is sorted
++			if values[lo] <= target && target < values[mid] {
++				hi = mid - 1
++			} else {
++				lo = mid + 1
++			}
++		default: // right half [mid, hi] is sorted
++			if values[mid] < target && target <= values[hi] {
++				lo = mid + 1
++			} else {
++				hi = mid - 1
++			}
++		}
++	}
++	return -1
+ }

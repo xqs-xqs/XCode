@@ -1,0 +1,136 @@
+diff --git a/solution.py b/solution.py
+index d3ccdf7aba4b992a5827ea483441ad6d8ea1c498..dcd61f46d33f78319af5c0d2fb3e3e7aabc1b778 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,6 +1,5 @@
+ """A recursive-descent evaluator for integer arithmetic."""
+ 
+-import math
+ import re
+ 
+ _TOKEN = re.compile(r"\s*(?:([0-9]+)|(\*\*|//|[-+*%()]))")
+@@ -50,9 +49,9 @@ class _Parser:
+             if operator == "*":
+                 value *= right
+             elif operator == "//":
+-                value = int(value / right)
++                value = value // right
+             else:
+-                value = int(math.fmod(value, right))
++                value = value % right
+         return value
+ 
+     def unary(self):
+@@ -66,6 +65,8 @@ class _Parser:
+         if self.peek() == "**":
+             self.take()
+             exponent = self.unary()
++            if exponent < 0:
++                raise ValueError("negative exponent")
+             return base ** exponent
+         return base
+ 
+@@ -84,4 +85,6 @@ class _Parser:
+ def evaluate(text: str) -> int:
+     parser = _Parser(_tokens(text))
+     value = parser.expression()
++    if parser.peek() is not None:
++        raise ValueError(f"unexpected trailing token {parser.peek()!r}")
+     return value
+diff --git a/spec_check.py b/spec_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..bfb9b59ee28ca6bb16a98d1231678597411cc57f
+--- /dev/null
++++ b/spec_check.py
+@@ -0,0 +1,91 @@
++import unittest
++
++from solution import evaluate
++
++VALUE_CASES = {
++    "-7 % 3": 2,
++    "7 % -2": -1,
++    "-7 % -2": -1,
++    "7 // 2": 3,
++    "-7 // 2": -4,
++    "7 // -2": -4,
++    "-7 // -2": 3,
++    "-2**2": -4,
++    "(-2)**2": 4,
++    "-2 ** -(-2)": -4,
++    "2**3**2": 512,
++    "2 * -3 ** 2": -18,
++    "-(3 ** 2)": -9,
++    "1 + 2 * 3": 7,
++    "(1 + 2) * 3": 9,
++    "100 // 7 % 3": 2,
++    "20 % 7 // 2": 3,
++    "1 - 2 - 3": -4,
++    "100 // 5 // 2": 10,
++    "2 ** 10": 1024,
++    "0 ** 0": 1,
++    "7 ** 0": 1,
++    "  6  ": 6,
++    "6": 6,
++    "-(-(-3))": -3,
++    "- 5": -5,
++    "(((1)))": 1,
++    "10**20 // 3": 10 ** 20 // 3,
++    "123456789012345678901234567890 % 7": 123456789012345678901234567890 % 7,
++    "2**3 * 4": 32,
++    "2 * 2 ** 3": 16,
++    "1 + 2 + 3": 6,
++    "2 ** 3 ** 2 ** 2": 2417851639229258349412352,
++    "1 + 2 * 3 ** 2 - 4 // 2 % 3": 17,
++}
++
++ERROR_CASES = {
++    "": ValueError,
++    "   ": ValueError,
++    "@": ValueError,
++    "1 @ 2": ValueError,
++    "1 / 2": ValueError,
++    "/ 2": ValueError,
++    "1 + + 2": ValueError,
++    "+1": ValueError,
++    "1 * * 2": ValueError,
++    "1 ** ** 2": ValueError,
++    "(1": ValueError,
++    "1)": ValueError,
++    ")": ValueError,
++    "()": ValueError,
++    "1 2": ValueError,
++    "1 2 3": ValueError,
++    "1 +": ValueError,
++    "* 3": ValueError,
++    "1 (2)": ValueError,
++    "(1 2)": ValueError,
++    "2 ** -1": ValueError,
++    "2 ** - 3": ValueError,
++    "1 + 2 ** -2": ValueError,
++    "2 ** 3 ** -1": ValueError,
++    "8 // 0": ZeroDivisionError,
++    "8 % 0": ZeroDivisionError,
++    "0 // (3 - 3)": ZeroDivisionError,
++    "1 % (5 - 5)": ZeroDivisionError,
++    "7 // 2 % 0": ZeroDivisionError,
++}
++
++
++class TestSpecification(unittest.TestCase):
++    def test_values(self):
++        for text, expected in VALUE_CASES.items():
++            with self.subTest(text=text):
++                actual = evaluate(text)
++                self.assertIs(type(actual), int)
++                self.assertEqual(actual, expected)
++
++    def test_errors(self):
++        for text, expected in ERROR_CASES.items():
++            with self.subTest(text=text):
++                with self.assertRaises(expected):
++                    evaluate(text)
++
++
++if __name__ == "__main__":
++    unittest.main()

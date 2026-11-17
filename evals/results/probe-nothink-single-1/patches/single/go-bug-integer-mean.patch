@@ -1,0 +1,11 @@
+diff --git a/solution.go b/solution.go
+index 1c6aa1f149b26bec32a511b2ce6338e3131e8cdf..73926ff84b82524ba221313ea4032d5dbd330e20 100644
+--- a/solution.go
++++ b/solution.go
+@@ -14,5 +14,5 @@ func Mean(values []int) (float64, error) {
+ 	for _, value := range values {
+ 		sum += value
+ 	}
+-	return float64(sum / len(values)), nil
++	return float64(sum) / float64(len(values)), nil
+ }

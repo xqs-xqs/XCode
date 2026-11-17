@@ -1,0 +1,61 @@
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index 52711d1324782797cb8689cca11513f21d733851..9a248f876d73e1d14ab47fffc3f90531ad67bb33 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1192,6 +1192,56 @@ def visit_Call(self, node):
+             new_node.keywords.append(ast.keyword(arg='evaluate', value=ast.NameConstant(value=False, ctx=ast.Load())))
+         return new_node
+ 
++    def visit_Compare(self, node):
++        def _transform_Compare_op(op):
++            # Note: we do not use the operator mapping of visit_BinOp, since
++            # the sympy classes for relationals are not binary functions.
++            if isinstance(op, ast.Lt):
++                return 'Lt'
++            elif isinstance(op, ast.LtE):
++                return 'Le'
++            elif isinstance(op, ast.Gt):
++                return 'Gt'
++            elif isinstance(op, ast.GtE):
++                return 'Ge'
++            elif isinstance(op, ast.Eq):
++                return 'Eq'
++            elif isinstance(op, ast.NotEq):
++                return 'Ne'
++            else:
++                raise NotImplementedError("Unsupported comparison operator")
++
++        evaluate_keyword = ast.keyword(
++            arg='evaluate',
++            value=ast.NameConstant(value=False, ctx=ast.Load()))
++
++        left = self.visit(node.left)
++        ops = [_transform_Compare_op(op) for op in node.ops]
++        comparators = [self.visit(comparator)
++                       for comparator in node.comparators]
++
++        def _relational(op, arg1, arg2):
++            return ast.Call(
++                func=ast.Name(id=op, ctx=ast.Load()),
++                args=[arg1, arg2],
++                keywords=[evaluate_keyword],
++                starargs=None,
++                kwargs=None)
++
++        if len(ops) == 1:
++            return _relational(ops[0], left, comparators[0])
++        else:
++            # Chained comparisons, e.g. ``1 < x < 3``, are equivalent to
++            # the conjunction of the individual comparisons.
++            return ast.Call(
++                func=ast.Name(id='And', ctx=ast.Load()),
++                args=[_relational(op, comparators[i - 1] if i > 0 else left,
++                                  comparators[i])
++                      for i, op in enumerate(ops)],
++                keywords=[evaluate_keyword],
++                starargs=None,
++                kwargs=None)
++
+ 
+ _transformation = {  # items can be added but never re-ordered
+ 0: lambda_notation,

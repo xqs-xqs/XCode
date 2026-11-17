@@ -1,0 +1,18 @@
+diff --git a/solution.py b/solution.py
+index d6da04fd06dc898e4a378fcfa12e132fddd8e9b5..b8fa28b03e532d7362942ced9087ce6a10f9b3d4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,11 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++from itertools import groupby
++
+ def encode(text: str) -> list[list]:
+-    raise NotImplementedError
++    """Run-length encode ``text`` into ordered ``[character, count]`` lists."""
++    return [[char, sum(1 for _ in run)] for char, run in groupby(text)]
+ 
+ def decode(pairs: list[list]) -> str:
+-    raise NotImplementedError
++    """Rebuild the original string from ordered ``[character, count]`` pairs."""
++    return "".join(char * count for char, count in pairs)
+ 

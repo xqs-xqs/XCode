@@ -1,0 +1,106 @@
+diff --git a/_verify_tmp.py b/_verify_tmp.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca044a31a2fff1088d4fbb7339246796f20fd7a6
+--- /dev/null
++++ b/_verify_tmp.py
+@@ -0,0 +1,55 @@
++import solution
++B = solution.TokenBucket
++
++class Clock:
++    def __init__(self): self.t = 0.0
++    def __call__(self): return self.t
++
++res = []
++def chk(name, cond): res.append((name, bool(cond)))
++
++c = Clock(); b = B(rate=1, capacity=5, clock=c)
++chk("starts full", b.tokens() == 5)
++
++for kw in ({"rate":0}, {"rate":-1}, {"capacity":0}, {"capacity":-2}):
++    args = dict(rate=1, capacity=1); args.update(kw)
++    try:
++        B(clock=c, **args); chk("ValueError "+str(kw), False)
++    except ValueError: chk("ValueError "+str(kw), True)
++
++c = Clock(); b = B(rate=1, capacity=3, clock=c)
++for n in (0, -3):
++    try:
++        b.allow(n); chk("ValueError allow %d" % n, False)
++    except ValueError: chk("ValueError allow %d" % n, True)
++
++c = Clock(); b = B(rate=1, capacity=3, clock=c)
++chk("drain all", b.allow(3))
++chk("empty -> False", b.allow(1) is False)
++chk("untouched after fail", b.tokens() == 0)
++
++c = Clock(); b = B(rate=2, capacity=2, clock=c)
++b.allow(2); c.t = 10.0
++chk("clamped to capacity", b.tokens() == 2)
++
++c = Clock(); b = B(rate=0.5, capacity=10, clock=c)
++b.allow(10); c.t = 2.0
++chk("fractional refill 1.0", b.tokens() == 1.0)
++
++c = Clock(); b = B(rate=0.1, capacity=10, clock=c)
++b.allow(10); c.t = 3.0
++before = b.tokens()
++chk("accrued 0.3", abs(before - 0.3) < 1e-9)
++chk("allow 1 False when short", b.allow(1) is False)
++chk("untouched after short", b.tokens() == before)
++
++c = Clock(); b = B(rate=1, capacity=2, clock=c)
++chk("allow exactly capacity", b.allow(2) is True)
++chk("exhausted", b.tokens() == 0)
++
++b2 = B(rate=1, capacity=1)
++chk("default clock constructs", b2.tokens() == 1)
++
++for name, ok in res:
++    print(("PASS  " if ok else "FAIL  ") + name)
++print("SUMMARY", sum(ok for _, ok in res), "/", len(res), "passed")
+diff --git a/solution.py b/solution.py
+index 63cf4e81c82dbf526d3c7b24b19ed03ed8b7e3f4..2f1038d4c9498b6becc4382f94b2499eaafce5c9 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,39 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++import time
++
++
+ class TokenBucket:
+-    pass
++    """Token bucket rate limiter refilled lazily from an injected clock."""
++
++    def __init__(self, rate, capacity, clock=None):
++        if rate <= 0:
++            raise ValueError("rate must be positive")
++        if capacity <= 0:
++            raise ValueError("capacity must be positive")
++        self.rate = float(rate)
++        self.capacity = float(capacity)
++        self._clock = clock if clock is not None else time.monotonic
++        self._tokens = self.capacity
++        self._last = self._clock()
++
++    def _refill(self):
++        now = self._clock()
++        elapsed = now - self._last
++        self._last = now
++        if elapsed > 0:
++            self._tokens = min(self.capacity, self._tokens + elapsed * self.rate)
++
++    def allow(self, count):
++        if count < 1:
++            raise ValueError("count must be at least one")
++        self._refill()
++        if self._tokens + 1e-9 >= count:
++            self._tokens = max(0.0, self._tokens - count)
++            return True
++        return False
++
++    def tokens(self):
++        self._refill()
++        return self._tokens
+ 

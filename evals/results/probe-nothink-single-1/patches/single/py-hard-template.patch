@@ -1,0 +1,81 @@
+diff --git a/solution.py b/solution.py
+index 99e7b3b7a38375840aaa3e932130432297f79334..fdf897bb2aa86bfd2c97053c12ab37d8ce2143c2 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,74 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++_SEGMENT = re.compile(r"^[A-Za-z0-9_]+$")
++
++_FILTERS = {
++    "upper": str.upper,
++    "lower": str.lower,
++    "title": str.title,
++    "trim": str.strip,
++}
++
++
++def _resolve(name: str, values) -> str:
++    segments = [segment.strip() for segment in name.split(".")]
++    for segment in segments:
++        if not _SEGMENT.match(segment):
++            raise ValueError("malformed name: %r" % (name,))
++    current = values
++    for segment in segments:
++        if not isinstance(current, dict):
++            raise KeyError(segment)
++        if segment not in current:
++            raise KeyError(segment)
++        current = current[segment]
++    return str(current)
++
++
+ def _expand(inner: str, values) -> str:
+-    raise NotImplementedError
++    parts = inner.split("|")
++    name = parts[0].strip()
++    if not name:
++        raise ValueError("empty placeholder")
++    filters = []
++    for raw in parts[1:]:
++        filter_name = raw.strip()
++        if not filter_name:
++            raise ValueError("empty filter")
++        if filter_name not in _FILTERS:
++            raise ValueError("unknown filter: %r" % (filter_name,))
++        filters.append(_FILTERS[filter_name])
++    result = _resolve(name, values)
++    for function in filters:
++        result = function(result)
++    return result
++
+ 
+ def render(template: str, values: dict) -> str:
+-    raise NotImplementedError
++    out = []
++    i = 0
++    length = len(template)
++    while i < length:
++        ch = template[i]
++        if ch == "{":
++            if i + 1 < length and template[i + 1] == "{":
++                out.append("{")
++                i += 2
++                continue
++            end = template.find("}", i + 1)
++            if end == -1:
++                raise ValueError("unclosed placeholder")
++            out.append(_expand(template[i + 1:end], values))
++            i = end + 1
++        elif ch == "}":
++            if i + 1 < length and template[i + 1] == "}":
++                out.append("}")
++                i += 2
++                continue
++            raise ValueError("lone '}' outside placeholder")
++        else:
++            out.append(ch)
++            i += 1
++    return "".join(out)
+ 

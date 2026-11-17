@@ -1,0 +1,16 @@
+diff --git a/solution.py b/solution.py
+index 74816afd795ca56a9b6ffe16dd05ccb60a201aee..226dca6de476727f2ee456879c7d16431ad697c1 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,8 +1,10 @@
+ """Append helpers that accumulate state across calls."""
+ 
+ 
+-def collect(items, target=[]):
++def collect(items, target=None):
+     """Append the items that are not already present and return the target list."""
++    if target is None:
++        target = []
+     for item in items:
+         if item not in target:
+             target.append(item)

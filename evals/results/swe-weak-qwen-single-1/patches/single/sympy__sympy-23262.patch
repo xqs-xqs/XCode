@@ -1,0 +1,49 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19d5706e8350104eda713e203d675fa1..91b9c3ce324b3669f5bb18f8d13f11ccb96a836d 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -955,13 +955,17 @@ def _recursive_to_string(doprint, arg):
+     if isinstance(arg, (Basic, MatrixOperations)):
+         return doprint(arg)
+     elif iterable(arg):
++        printed = [_recursive_to_string(doprint, e) for e in arg]
+         if isinstance(arg, list):
+-            left, right = "[]"
++            return "[%s]" % ", ".join(printed)
+         elif isinstance(arg, tuple):
+-            left, right = "()"
++            if len(printed) == 1:
++                # a singleton tuple needs a trailing comma: without it
++                # "(1)" would evaluate to an integer instead of a tuple
++                return "(%s,)" % printed[0]
++            return "(%s)" % ", ".join(printed)
+         else:
+             raise NotImplementedError("unhandled type: %s, %s" % (type(arg), arg))
+-        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + right
+     elif isinstance(arg, str):
+         return arg
+     else:
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 023c2fb55ab91ed776989b67fe92ed5426106a69..f9bba811765d9c99013e5be40adbff8ba1678ce4 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -1182,6 +1182,19 @@ def test_lambdify_inspect():
+     assert 'x**2' in inspect.getsource(f)
+ 
+ 
++def test_lambdify_one_element_tuple():
++    # A one element tuple must keep its trailing comma in the generated code,
++    # otherwise it is evaluated as the element itself.
++    assert lambdastr([], (1,)) == 'lambda : ((1,))'
++    assert lambdify([], (1,))() == (1,)
++    assert lambdify([], (1, 2))() == (1, 2)
++    assert lambdify([], ())() == ()
++    assert lambdify([x], (x,))(1) == (1,)
++    assert lambdify([x], (1, (x,)))(1) == (1, (1,))
++    assert lambdify([x], [x, (x,)])(1) == [1, (1,)]
++    assert lambdify([x], (x,), 'sympy')(1) == (1,)
++
++
+ def test_issue_14941():
+     x, y = Dummy(), Dummy()
+ 

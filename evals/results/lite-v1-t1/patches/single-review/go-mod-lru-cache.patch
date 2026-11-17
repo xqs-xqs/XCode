@@ -1,0 +1,79 @@
+diff --git a/solution.go b/solution.go
+index 383f722bd69d862a4129e21990ccefa3b3f5f81e..2df2e33c3c698fa1ff9c46c3b182f56400795da8 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,30 +1,69 @@
+ package solution
+ 
+-import "errors"
++import (
++	"container/list"
++	"errors"
++)
+ 
+ // ErrCapacity is returned for a non-positive capacity.
+ var ErrCapacity = errors.New("capacity must be positive")
+ 
++// entry is a single key/value pair stored in the cache.
++type entry struct {
++	key   string
++	value int
++}
++
+ // LRUCache is a fixed-capacity cache that evicts the least recently used entry.
+ type LRUCache struct {
++	capacity int
++	items    map[string]*list.Element
++	// order holds *entry values; the front is the most recently used.
++	order *list.List
+ }
+ 
+ // NewLRUCache builds a cache holding at most capacity entries.
+ func NewLRUCache(capacity int) (*LRUCache, error) {
+-	panic("not implemented")
++	if capacity <= 0 {
++		return nil, ErrCapacity
++	}
++	return &LRUCache{
++		capacity: capacity,
++		items:    make(map[string]*list.Element, capacity),
++		order:    list.New(),
++	}, nil
+ }
+ 
+ // Get returns the stored value and whether the key was present.
+ func (c *LRUCache) Get(key string) (int, bool) {
+-	panic("not implemented")
++	elem, ok := c.items[key]
++	if !ok {
++		return 0, false
++	}
++	c.order.MoveToFront(elem)
++	return elem.Value.(*entry).value, true
+ }
+ 
+ // Put stores a value, marking the key most recently used.
+ func (c *LRUCache) Put(key string, value int) {
+-	panic("not implemented")
++	if elem, ok := c.items[key]; ok {
++		item := elem.Value.(*entry)
++		item.value = value
++		c.order.MoveToFront(elem)
++		return
++	}
++	c.items[key] = c.order.PushFront(&entry{key: key, value: value})
++	for len(c.items) > c.capacity {
++		oldest := c.order.Back()
++		if oldest == nil {
++			break
++		}
++		c.order.Remove(oldest)
++		delete(c.items, oldest.Value.(*entry).key)
++	}
+ }
+ 
+ // Len reports how many entries are currently stored.
+ func (c *LRUCache) Len() int {
+-	panic("not implemented")
++	return len(c.items)
+ }

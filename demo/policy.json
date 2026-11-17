@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "go-test",
+      "tool": "exec",
+      "command_prefix": ["go", "test"],
+      "decision": "allow",
+      "reason": "The demo lets agents and the completion gate run the test suite without asking."
+    }
+  ]
+}

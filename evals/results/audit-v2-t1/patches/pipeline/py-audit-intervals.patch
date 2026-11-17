@@ -1,0 +1,64 @@
+diff --git a/solution.py b/solution.py
+index 8990b2a3149aeb6c42451b5aa9559fab0e6c8e71..479357879422c5bd3122d3a0c37a00b516d7d752 100644
+--- a/solution.py
++++ b/solution.py
+@@ -5,23 +5,26 @@ class IntervalSet:
+     def __init__(self):
+         self._items = []
+ 
++    @staticmethod
++    def _normalize(pairs):
++        """Return the pairs as sorted, maximal, non-touching intervals."""
++        merged = []
++        for low, high in sorted(pairs):
++            if low >= high:
++                continue
++            if merged and low <= merged[-1][1]:
++                prev_low, prev_high = merged[-1]
++                merged[-1] = (prev_low, max(prev_high, high))
++            else:
++                merged.append((low, high))
++        return merged
++
+     def add(self, start, end):
+         if start > end:
+             raise ValueError("start must not exceed end")
+-        merged, placed = [], False
+-        for low, high in self._items:
+-            if high <= start:
+-                merged.append((low, high))
+-            elif end < low:
+-                if not placed:
+-                    merged.append((start, end))
+-                    placed = True
+-                merged.append((low, high))
+-            else:
+-                start, end = min(start, low), max(end, high)
+-        if not placed:
+-            merged.append((start, end))
+-        self._items = merged
++        if start == end:
++            return
++        self._items = self._normalize(list(self._items) + [(start, end)])
+ 
+     def remove(self, start, end):
+         if start > end:
+@@ -35,7 +38,7 @@ class IntervalSet:
+                 continue
+             if low < start:
+                 kept.append((low, start))
+-            elif end < high:
++            if end < high:
+                 kept.append((end, high))
+         self._items = kept
+ 
+@@ -43,7 +46,7 @@ class IntervalSet:
+         return any(low <= value < high for low, high in self._items)
+ 
+     def intervals(self):
+-        return list(self._items)
++        return self._normalize(self._items)
+ 
+     def __len__(self):
+-        return len(self._items)
++        return sum(high - low for low, high in self._items)

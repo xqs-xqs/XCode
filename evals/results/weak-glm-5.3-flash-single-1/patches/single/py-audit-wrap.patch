@@ -1,0 +1,88 @@
+diff --git a/solution.py b/solution.py
+index 59fc867c3cf9393bbb5f2f0f50a8b7b950e75c32..4cb03539ca6c246c97d1b6b9cfc2111074641182 100644
+--- a/solution.py
++++ b/solution.py
+@@ -15,22 +15,27 @@ def wrap(text: str, width: int) -> list:
+         paragraphs.append(current)
+ 
+     lines = []
+-    for number, words in enumerate(paragraphs):
++    for words in paragraphs:
++        paragraph = []
+         line = ""
+         for word in words:
+             if len(word) > width:
+                 if line:
+-                    lines.append(line)
++                    paragraph.append(line)
++                    line = ""
+                 chunks = [word[start:start + width] for start in range(0, len(word), width)]
+-                lines.extend(chunks)
+-                line = ""
++                paragraph.extend(chunks[:-1])
++                line = chunks[-1]
+             elif not line:
+                 line = word
+-            elif len(line) + 1 + len(word) < width:
++            elif len(line) + 1 + len(word) <= width:
+                 line += " " + word
+             else:
+-                lines.append(line)
++                paragraph.append(line)
+                 line = word
+         if line:
+-            lines.append(line)
++            paragraph.append(line)
++        if lines:
++            lines.append("")
++        lines.extend(paragraph)
+     return lines
+diff --git a/spec_check.py b/spec_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2c12843430e21f9d1b874e1ac3066886c51c986f
+--- /dev/null
++++ b/spec_check.py
+@@ -0,0 +1,43 @@
++import unittest
++
++from solution import wrap
++
++
++class SpecChecks(unittest.TestCase):
++    def test_paragraph_separators(self):
++        self.assertEqual(wrap("aa bb\n\n\ncc", 5), ["aa bb", "", "cc"])
++        self.assertEqual(wrap("aa\n  \n\t\nbb", 5), ["aa", "", "bb"])  # ws-only line is blank
++        self.assertEqual(wrap("aa\n\n\n\nbb", 5), ["aa", "", "bb"])
++        self.assertEqual(wrap("aa\nbb", 5), ["aa bb"])  # single newline separates words
++        self.assertEqual(wrap("aa\n\n\nbb\n\n\ncc", 5), ["aa", "", "bb", "", "cc"])
++
++    def test_no_words(self):
++        self.assertEqual(wrap("", 3), [])
++        self.assertEqual(wrap(" \n\t ", 3), [])
++        self.assertEqual(wrap("a\n\n", 5), ["a"])  # no trailing ""
++
++    def test_value_error(self):
++        for w in (0, -1, -9):
++            with self.assertRaises(ValueError):
++                wrap("x", w)
++
++    def test_long_words(self):
++        self.assertEqual(wrap("abcdef", 3), ["abc", "def"])
++        self.assertEqual(wrap("abcdefg", 3), ["abc", "def", "g"])
++        self.assertEqual(wrap("hi abcdefg jk", 3), ["hi", "abc", "def", "g", "jk"])  # 4 chars > 3
++        self.assertEqual(wrap("hi abcdefgh z", 3), ["hi", "abc", "def", "gh", "z"])  # 2+1+1=4 > 3
++        self.assertEqual(wrap("abcde f", 4), ["abcd", "e f"])  # joins 1-char last chunk
++        self.assertEqual(wrap("hi abcdefg mn", 3), ["hi", "abc", "def", "g", "mn"])
++        self.assertEqual(wrap("ab abcdef xy", 4), ["ab", "abcd", "ef", "xy"])
++        self.assertEqual(wrap("aaaaaa\n\nbb", 3), ["aaa", "aaa", "", "bb"])
++
++    def test_fill_and_whitespace(self):
++        self.assertEqual(wrap("a bb ccc dddd", 6), ["a bb", "ccc", "dddd"])
++        self.assertEqual(wrap("one two three", 7), ["one two", "three"])
++        self.assertEqual(wrap("x  y\tz\n w", 4), ["x y", "z w"])
++        for l in wrap("  a  b ", 1):
++            self.assertEqual(l, l.strip())
++
++
++if __name__ == "__main__":
++    unittest.main()

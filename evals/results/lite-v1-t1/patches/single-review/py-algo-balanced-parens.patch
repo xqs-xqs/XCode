@@ -1,0 +1,43 @@
+diff --git a/solution.py b/solution.py
+index 53c3019a413d45cc902452826eb8500ace171162..62f63ce86db0a17a54738333ec114f463038c61d 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,37 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++
+ def is_balanced(text: str) -> bool:
+-    raise NotImplementedError
++    """Return True iff some substitution of '*' (as '(' , ')' or empty)
++    makes ``text`` a balanced parenthesis sequence.
++
++    Tracks the range [low, high] of open-parenthesis counts reachable after
++    each prefix.  ``low`` uses every '*' as a closer when possible, ``high``
++    uses every '*' as an opener; if the reachable set is ever empty (low > high
++    after clamping, or high < 0) no valid assignment exists for the prefix.
++    """
++    allowed = set("()*")
++    for ch in text:
++        if ch not in allowed:
++            raise ValueError(f"invalid character: {ch!r}")
++
++    low = high = 0
++
++    for ch in text:
++        if ch == "(":
++            low += 1
++            high += 1
++        elif ch == ")":
++            low -= 1
++            high -= 1
++        else:  # '*': closer, nothing, or opener
++            low -= 1
++            high += 1
++
++        if high < 0:
++            # Too many ')' so far: even using every '*' as '(' fails.
++            return False
++        low = max(low, 0)
++
++    return low == 0
+ 

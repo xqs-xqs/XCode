@@ -1,0 +1,59 @@
+diff --git a/solution.py b/solution.py
+index d3ccdf7aba4b992a5827ea483441ad6d8ea1c498..d6c54ec259d4e56189fbf28aef31d0722296c3f9 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,19 +1,20 @@
+ """A recursive-descent evaluator for integer arithmetic."""
+ 
+-import math
+ import re
+ 
+-_TOKEN = re.compile(r"\s*(?:([0-9]+)|(\*\*|//|[-+*%()]))")
++_TOKEN = re.compile(r"[0-9]+|\*\*|//|[-+*%()]")
+ 
+ 
+ def _tokens(text):
+     tokens, position = [], 0
+-    stripped = text.rstrip()
+-    while position < len(stripped):
+-        match = _TOKEN.match(stripped, position)
++    while position < len(text):
++        if text[position] == " ":
++            position += 1
++            continue
++        match = _TOKEN.match(text, position)
+         if match is None:
+             raise ValueError(f"unexpected input at {position}")
+-        tokens.append(match.group(1) if match.group(1) is not None else match.group(2))
++        tokens.append(match.group(0))
+         position = match.end()
+     return tokens
+ 
+@@ -50,9 +51,9 @@ class _Parser:
+             if operator == "*":
+                 value *= right
+             elif operator == "//":
+-                value = int(value / right)
++                value //= right
+             else:
+-                value = int(math.fmod(value, right))
++                value %= right
+         return value
+ 
+     def unary(self):
+@@ -66,6 +67,8 @@ class _Parser:
+         if self.peek() == "**":
+             self.take()
+             exponent = self.unary()
++            if exponent < 0:
++                raise ValueError("negative exponent")
+             return base ** exponent
+         return base
+ 
+@@ -84,4 +87,6 @@ class _Parser:
+ def evaluate(text: str) -> int:
+     parser = _Parser(_tokens(text))
+     value = parser.expression()
++    if parser.peek() is not None:
++        raise ValueError(f"unexpected token {parser.peek()!r}")
+     return value

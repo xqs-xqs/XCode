@@ -1,0 +1,27 @@
+diff --git a/solution.py b/solution.py
+index a4dc5999b063822f50242cf0b4bcec244af46f12..d944d486a2b758ac5982d59b5a37123e3efa0ffe 100644
+--- a/solution.py
++++ b/solution.py
+@@ -7,9 +7,9 @@ _SYMBOLS = [
+ 
+ 
+ def to_roman(number: int) -> str:
+-    if not isinstance(number, int):
++    if isinstance(number, bool) or not isinstance(number, int):
+         raise TypeError("number must be an int")
+-    if not 1 <= number <= 4999:
++    if not 1 <= number <= 3999:
+         raise ValueError("number out of range")
+     parts = []
+     for value, symbol in _SYMBOLS:
+@@ -27,6 +27,9 @@ def from_roman(text: str) -> int:
+         while text.startswith(symbol, position):
+             total += value
+             position += len(symbol)
+-    if position != len(text) or not 1 <= total <= 3999:
++    # The greedy parse succeeds for non-standard numerals too (IIII, IXI, VV,
++    # IL, IC, XM, ...), so accept only strings to_roman can generate: the
++    # parsed value must round-trip back to exactly the same text.
++    if position != len(text) or not 1 <= total <= 3999 or to_roman(total) != text:
+         raise ValueError(f"not a standard Roman numeral: {text!r}")
+     return total

@@ -1,0 +1,24 @@
+diff --git a/solution.py b/solution.py
+index d6da04fd06dc898e4a378fcfa12e132fddd8e9b5..743c894add8788fc68b393bc20bf2b655a491d75 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,7 +1,17 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def encode(text: str) -> list[list]:
+-    raise NotImplementedError
++    """Group consecutive identical characters into [character, count] pairs."""
++    if not text:
++        return []
++    pairs = [[text[0], 1]]
++    for char in text[1:]:
++        if char == pairs[-1][0]:
++            pairs[-1][1] += 1
++        else:
++            pairs.append([char, 1])
++    return pairs
+ 
+ def decode(pairs: list[list]) -> str:
+-    raise NotImplementedError
++    """Rebuild the original string from [character, count] pairs."""
++    return "".join(char * count for char, count in pairs)
+ 

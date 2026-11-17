@@ -1,0 +1,82 @@
+diff --git a/solution.go b/solution.go
+index 0081ab6cf9a4f2ff4f8ee2a69701fac9fea93423..3564bd2185adbc5dc34408ba43729fca6f270740 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,25 +1,73 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"sync"
++)
+ 
+ // ErrParameter is returned for a non-positive rate, capacity or request count.
+ var ErrParameter = errors.New("invalid token bucket parameter")
+ 
+ // TokenBucket refills at rate tokens per second, up to capacity, using clock.
+ type TokenBucket struct {
++	mu       sync.Mutex
++	rate     float64
++	capacity float64
++	tokens   float64
++	last     float64
++	clock    func() float64
+ }
+ 
+ // NewTokenBucket builds a bucket that starts full.
+ func NewTokenBucket(rate float64, capacity int, clock func() float64) (*TokenBucket, error) {
+-	panic("not implemented")
++	if rate <= 0 || capacity <= 0 {
++		return nil, ErrParameter
++	}
++	return &TokenBucket{
++		rate:     rate,
++		capacity: float64(capacity),
++		tokens:   float64(capacity),
++		last:     clock(),
++		clock:    clock,
++	}, nil
+ }
+ 
+ // Allow removes count tokens and reports whether they were available.
+ func (b *TokenBucket) Allow(count int) (bool, error) {
+-	panic("not implemented")
++	if count < 1 {
++		return false, ErrParameter
++	}
++	b.mu.Lock()
++	defer b.mu.Unlock()
++
++	b.refillLocked()
++
++	want := float64(count)
++	if want > b.tokens {
++		return false, nil
++	}
++	b.tokens -= want
++	return true, nil
+ }
+ 
+ // Tokens reports the current token level.
+ func (b *TokenBucket) Tokens() float64 {
+-	panic("not implemented")
++	b.mu.Lock()
++	defer b.mu.Unlock()
++
++	b.refillLocked()
++	return b.tokens
++}
++
++// refillLocked adds tokens accrued since the last update, capped at capacity.
++// The caller must hold b.mu.
++func (b *TokenBucket) refillLocked() {
++	now := b.clock()
++	if elapsed := now - b.last; elapsed > 0 {
++		b.tokens += elapsed * b.rate
++		if b.tokens > b.capacity {
++			b.tokens = b.capacity
++		}
++	}
++	b.last = now
+ }

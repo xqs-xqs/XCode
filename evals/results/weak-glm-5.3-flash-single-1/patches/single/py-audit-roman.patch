@@ -1,0 +1,25 @@
+diff --git a/solution.py b/solution.py
+index a4dc5999b063822f50242cf0b4bcec244af46f12..32093ae970d280f0da32010cfe7ba2d8d9de3d9a 100644
+--- a/solution.py
++++ b/solution.py
+@@ -7,9 +7,9 @@ _SYMBOLS = [
+ 
+ 
+ def to_roman(number: int) -> str:
+-    if not isinstance(number, int):
++    if isinstance(number, bool) or not isinstance(number, int):
+         raise TypeError("number must be an int")
+-    if not 1 <= number <= 4999:
++    if not 1 <= number <= 3999:
+         raise ValueError("number out of range")
+     parts = []
+     for value, symbol in _SYMBOLS:
+@@ -29,4 +29,8 @@ def from_roman(text: str) -> int:
+             position += len(symbol)
+     if position != len(text) or not 1 <= total <= 3999:
+         raise ValueError(f"not a standard Roman numeral: {text!r}")
++    # Accept only the canonical forms produced by to_roman; this rejects
++    # non-standard shapes such as IIII, VV, IL, IC, XM, IXI or MMMM.
++    if to_roman(total) != text:
++        raise ValueError(f"not a standard Roman numeral: {text!r}")
+     return total

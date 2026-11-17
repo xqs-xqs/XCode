@@ -1,0 +1,27 @@
+diff --git a/solution.py b/solution.py
+index 59fc867c3cf9393bbb5f2f0f50a8b7b950e75c32..974e0977220b318aedb7a1c89aaaeb05ccf20b3e 100644
+--- a/solution.py
++++ b/solution.py
+@@ -16,17 +16,19 @@ def wrap(text: str, width: int) -> list:
+ 
+     lines = []
+     for number, words in enumerate(paragraphs):
++        if number:
++            lines.append("")
+         line = ""
+         for word in words:
+             if len(word) > width:
+                 if line:
+                     lines.append(line)
+                 chunks = [word[start:start + width] for start in range(0, len(word), width)]
+-                lines.extend(chunks)
+-                line = ""
++                lines.extend(chunks[:-1])
++                line = chunks[-1]
+             elif not line:
+                 line = word
+-            elif len(line) + 1 + len(word) < width:
++            elif len(line) + 1 + len(word) <= width:
+                 line += " " + word
+             else:
+                 lines.append(line)

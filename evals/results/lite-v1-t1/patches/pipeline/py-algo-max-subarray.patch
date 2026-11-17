@@ -1,0 +1,16 @@
+diff --git a/solution.py b/solution.py
+index 70b522fafa912f1c8d6687cb2121380bc3314db8..004c706ffff6c09bd5a2c736179f6a2a130a9f5b 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,10 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def max_subarray_sum(values: list) -> int:
+-    raise NotImplementedError
++    if not values:
++        raise ValueError("values must be a non-empty sequence")
++    current = best = values[0]
++    for value in values[1:]:
++        current = max(value, current + value)
++        best = max(best, current)
++    return best
+ 

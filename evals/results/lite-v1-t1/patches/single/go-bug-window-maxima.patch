@@ -1,0 +1,13 @@
+diff --git a/solution.go b/solution.go
+index 8e1c73f8a0f8a88b7545e82487922962ff848cbf..24c6835ec4ce0f0a720e55a18bc6df1e0b614d78 100644
+--- a/solution.go
++++ b/solution.go
+@@ -15,7 +15,7 @@ func WindowMaxima(values []int, width int) ([]int, error) {
+ 		return []int{}, nil
+ 	}
+ 	result := make([]int, 0, len(values)-width+1)
+-	for start := 0; start < len(values)-width; start++ {
++	for start := 0; start+width <= len(values); start++ {
+ 		best := values[start]
+ 		for _, value := range values[start : start+width] {
+ 			if value > best {

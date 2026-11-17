@@ -1,0 +1,10 @@
+diff --git a/solution.py b/solution.py
+index 784ed643a26a14b54f0c21967a84ad467768176b..369d73a25c14115eb5023cae6d9b5a054d8e2ba4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -3,4 +3,4 @@
+ 
+ def nearly_equal(left: float, right: float, tolerance: float = 1e-9) -> bool:
+     """Return True when the two values differ by no more than the tolerance."""
+-    return abs(left - right) < tolerance
++    return abs(left - right) <= tolerance

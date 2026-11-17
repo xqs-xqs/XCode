@@ -1,0 +1,93 @@
+diff --git a/solution.py b/solution.py
+index 21af57e53498db46a410a1cc36abb50e29877939..c1580ee5455f3afaa5192d53d06364f9e47a770c 100644
+--- a/solution.py
++++ b/solution.py
+@@ -3,13 +3,62 @@
+ import heapq
+ 
+ 
++def _can_reach_self(start: str, graph: dict) -> bool:
++    """True if ``start`` is part of a cycle in ``graph``."""
++    seen = set()
++    stack = list(graph[start])
++    while stack:
++        node = stack.pop()
++        if node == start:
++            return True
++        if node in seen:
++            continue
++        seen.add(node)
++        stack.extend(graph[node])
++    return False
++
++
++def _shortest_cycle(start: str, graph: dict) -> list:
++    """Shortest dependency cycle through ``start``, alphabetically minimal."""
++    paths = {start: [start]}
++    frontier = [start]
++    while frontier:
++        found = []
++        longer = {}
++        for node in frontier:
++            path = paths[node]
++            for need in graph[node]:
++                if need == start:
++                    found.append(path + [start])
++                elif need not in paths:
++                    candidate = path + [need]
++                    best = longer.get(need)
++                    if best is None or candidate < best:
++                        longer[need] = candidate
++        if found:
++            return min(found)
++        paths.update(longer)
++        frontier = list(longer)
++    return []
++
++
++def _cycle_message(dependencies: dict, done: set) -> str:
++    graph = {
++        name: sorted(need for need in needs if need not in done)
++        for name, needs in dependencies.items()
++        if name not in done
++    }
++    start = min(name for name in graph if _can_reach_self(name, graph))
++    return " -> ".join(_shortest_cycle(start, graph))
++
++
+ def install_order(packages: dict) -> list:
+     dependencies = {}
+     for name, needs in packages.items():
+         for need in needs:
+             if need not in packages:
+                 raise KeyError(need)
+-        dependencies[name] = set(needs) - {name}
++        dependencies[name] = set(needs)
+ 
+     dependents = {name: [] for name in dependencies}
+     for name, needs in dependencies.items():
+@@ -21,7 +70,7 @@ def install_order(packages: dict) -> list:
+ 
+     order = []
+     while ready:
+-        name = ready.pop()
++        name = heapq.heappop(ready)
+         order.append(name)
+         for dependent in dependents[name]:
+             waiting[dependent] -= 1
+@@ -30,14 +79,4 @@ def install_order(packages: dict) -> list:
+     if len(order) == len(dependencies):
+         return order
+ 
+-    done = set(order)
+-    path, seen = [], {}
+-    current = min(name for name in dependencies if name not in done)
+-    while current not in seen:
+-        seen[current] = len(path)
+-        path.append(current)
+-        current = min(need for need in dependencies[current] if need not in done)
+-    cycle = path[seen[current]:]
+-    start = cycle.index(min(cycle))
+-    cycle = cycle[start:] + cycle[:start]
+-    raise ValueError(" -> ".join(cycle))
++    raise ValueError(_cycle_message(dependencies, set(order)))

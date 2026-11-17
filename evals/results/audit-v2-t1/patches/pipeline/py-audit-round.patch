@@ -1,0 +1,72 @@
+diff --git a/solution.py b/solution.py
+index 7021f49f3df24d034e979383d41c3fbf57fdc15b..983924ac186337ddfce5ae2428b6e915c267c166 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,17 +1,61 @@
+ """Exact half-even rounding of decimal strings."""
+ 
+ import re
+-from decimal import ROUND_HALF_UP, Decimal, localcontext
+ 
+-_NUMBER = re.compile(r"[-+]?[0-9]+(?:\.[0-9]+)?")
++_NUMBER = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
++
++
++def _round_digits(digits: str, keep: int) -> str:
++    """Round digit string `digits` to its first `keep` digits, half-to-even."""
++    kept, tail = digits[:keep], digits[keep:]
++    if not tail:
++        return kept
++    head = tail[0]
++    if head > "5":
++        round_up = True
++    elif head < "5":
++        round_up = False
++    elif any(ch != "0" for ch in tail[1:]):
++        round_up = True
++    else:
++        round_up = int(kept[-1]) % 2 == 1
++    if not round_up:
++        return kept
++    out = []
++    carry = 1
++    for ch in reversed(kept):
++        value = int(ch) + carry
++        carry = value // 10
++        out.append(str(value % 10))
++    if carry:
++        out.append("1")
++    return "".join(reversed(out))
+ 
+ 
+ def round_decimal(text: str, places: int) -> str:
++    if not isinstance(places, int):
++        raise ValueError(f"places must be an int, not {type(places).__name__}")
+     if places < 0:
+         raise ValueError("places must not be negative")
+     if not isinstance(text, str) or _NUMBER.fullmatch(text) is None:
+         raise ValueError(f"malformed number {text!r}")
+-    with localcontext() as context:
+-        value = Decimal(text).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+-    rendered = format(value, "f")
+-    return rendered
++
++    sign = ""
++    body = text
++    if body[0] == "-":
++        sign = "-"
++        body = body[1:]
++    int_part, _, frac_part = body.partition(".")
++
++    if places >= len(frac_part):
++        whole = int_part
++        fraction = frac_part + "0" * (places - len(frac_part))
++    else:
++        digits = _round_digits(int_part + frac_part, len(int_part) + places)
++        whole = digits[: len(digits) - places]
++        fraction = digits[len(digits) - places:]
++
++    whole = whole.lstrip("0") or "0"
++    if not any(ch != "0" for ch in whole + fraction):
++        sign = ""
++    return sign + whole if places == 0 else sign + whole + "." + fraction

@@ -1,0 +1,29 @@
+diff --git a/solution.py b/solution.py
+index b1a5a18950b492f18926dc99d8a806fb70466876..5ba15342eaf290b606fb3d805bb9aac0cebdefa4 100644
+--- a/solution.py
++++ b/solution.py
+@@ -2,7 +2,7 @@
+ 
+ 
+ def allocate(total: int, weights: list) -> list:
+-    if not isinstance(total, int):
++    if isinstance(total, bool) or not isinstance(total, int):
+         raise TypeError("total must be an int")
+     weights = list(weights)
+     for weight in weights:
+@@ -14,11 +14,13 @@ def allocate(total: int, weights: list) -> list:
+         raise ValueError("weights must not be negative")
+     scale = sum(weights)
+     if scale == 0:
+-        return [0] * len(weights)
++        raise ValueError("weights must not all be zero")
+     amount = abs(total)
+     parts = [amount * weight // scale for weight in weights]
+     remainders = [amount * weight % scale for weight in weights]
+-    order = sorted(range(len(weights)), key=lambda index: (-remainders[index], -index))
++    order = sorted(range(len(weights)), key=lambda index: (-remainders[index], index))
+     for index in order[: amount - sum(parts)]:
+         parts[index] += 1
++    if total < 0:
++        parts = [-part for part in parts]
+     return parts

@@ -1,0 +1,69 @@
+diff --git a/solution.py b/solution.py
+index be59bfade6447c878deb0e54ea274bfa50fd453e..fda45a9c2ff608e39f3ad61c2f99b56c798cb02d 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,63 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++from collections import OrderedDict
++
++
+ class TTLCache:
+-    pass
++    """A small LRU cache whose entries expire after a fixed TTL.
++
++    ``clock`` is a zero-argument callable returning the current time; an entry
++    is considered expired once the clock has reached its expiry time.
++    """
++
++    _MISSING = object()
++
++    def __init__(self, capacity, ttl, clock):
++        if capacity <= 0:
++            raise ValueError("capacity must be positive")
++        if ttl <= 0:
++            raise ValueError("ttl must be positive")
++        self._capacity = capacity
++        self._ttl = ttl
++        self._clock = clock
++        # key -> (value, expiry); ordered from least to most recently used.
++        self._data = OrderedDict()
++
++    def _now(self):
++        return self._clock()
++
++    def _is_expired(self, expiry, now):
++        return now >= expiry
++
++    def _purge_expired(self):
++        now = self._now()
++        for key in [k for k, (_, expiry) in self._data.items()
++                    if self._is_expired(expiry, now)]:
++            del self._data[key]
++
++    def set(self, key, value):
++        now = self._now()
++        if key in self._data:
++            del self._data[key]
++        else:
++            self._purge_expired()
++        self._data[key] = (value, now + self._ttl)
++        while len(self._data) > self._capacity:
++            self._data.popitem(last=False)
++
++    def get(self, key, default=None):
++        entry = self._data.get(key, self._MISSING)
++        if entry is self._MISSING:
++            return default
++        value, expiry = entry
++        if self._is_expired(expiry, self._now()):
++            del self._data[key]
++            return default
++        self._data.move_to_end(key)
++        return value
++
++    def __len__(self):
++        self._purge_expired()
++        return len(self._data)
++
+ 

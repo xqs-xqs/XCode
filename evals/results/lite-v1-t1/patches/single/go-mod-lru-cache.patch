@@ -1,0 +1,79 @@
+diff --git a/solution.go b/solution.go
+index 383f722bd69d862a4129e21990ccefa3b3f5f81e..2575025d58ab2ea8e23e19cce13a92daea44afbb 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,30 +1,69 @@
+ package solution
+ 
+-import "errors"
++import (
++	"container/list"
++	"errors"
++)
+ 
+ // ErrCapacity is returned for a non-positive capacity.
+ var ErrCapacity = errors.New("capacity must be positive")
+ 
++// entry is the value stored in the recency list.
++type entry struct {
++	key   string
++	value int
++}
++
+ // LRUCache is a fixed-capacity cache that evicts the least recently used entry.
+ type LRUCache struct {
++	capacity int
++	order    *list.List               // front = most recently used
++	items    map[string]*list.Element // key -> element in order
+ }
+ 
+ // NewLRUCache builds a cache holding at most capacity entries.
+ func NewLRUCache(capacity int) (*LRUCache, error) {
+-	panic("not implemented")
++	if capacity <= 0 {
++		return nil, ErrCapacity
++	}
++	return &LRUCache{
++		capacity: capacity,
++		order:    list.New(),
++		items:    make(map[string]*list.Element, capacity),
++	}, nil
+ }
+ 
+ // Get returns the stored value and whether the key was present.
+ func (c *LRUCache) Get(key string) (int, bool) {
+-	panic("not implemented")
++	elem, ok := c.items[key]
++	if !ok {
++		return 0, false
++	}
++	c.order.MoveToFront(elem)
++	return elem.Value.(*entry).value, true
+ }
+ 
+ // Put stores a value, marking the key most recently used.
+ func (c *LRUCache) Put(key string, value int) {
+-	panic("not implemented")
++	if c.capacity <= 0 {
++		return // nothing can be stored
++	}
++	if elem, ok := c.items[key]; ok {
++		e := elem.Value.(*entry)
++		e.value = value
++		c.order.MoveToFront(elem)
++		return
++	}
++	c.items[key] = c.order.PushFront(&entry{key: key, value: value})
++	for c.order.Len() > c.capacity {
++		if oldest := c.order.Back(); oldest != nil {
++			c.order.Remove(oldest)
++			delete(c.items, oldest.Value.(*entry).key)
++		}
++	}
+ }
+ 
+ // Len reports how many entries are currently stored.
+ func (c *LRUCache) Len() int {
+-	panic("not implemented")
++	return len(c.items)
+ }

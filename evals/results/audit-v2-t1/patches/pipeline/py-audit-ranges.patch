@@ -1,0 +1,51 @@
+diff --git a/solution.py b/solution.py
+index d16c53d69aa8b0e157cb554683882c41a47a6195..283f16e08193a8661152ef6358de9179ccbc12df 100644
+--- a/solution.py
++++ b/solution.py
+@@ -2,18 +2,19 @@
+ 
+ import re
+ 
+-_ITEM = re.compile(r"\s*(-?[0-9]+)\s*(?:-\s*(-?[0-9]+))?\s*")
++_SINGLE = re.compile(r"\s*(-?[0-9]+)\s*")
++_RANGE = re.compile(r"\s*(-?[0-9]+)\s*-\s*(-?[0-9]+)\s*")
+ 
+ 
+ def compress(numbers) -> str:
+-    values = sorted(numbers)
++    values = sorted(set(numbers))
+     items = []
+     index = 0
+     while index < len(values):
+         end = index
+         while end + 1 < len(values) and values[end + 1] == values[end] + 1:
+             end += 1
+-        if end - index >= 1:
++        if end - index >= 2:
+             items.append(f"{values[index]}-{values[end]}")
+         else:
+             items.extend(str(value) for value in values[index:end + 1])
+@@ -22,14 +23,20 @@ def compress(numbers) -> str:
+ 
+ 
+ def expand(text: str) -> list:
+-    if not text:
++    if not text.strip():
+         return []
+     values = set()
+     for item in text.split(","):
+-        match = _ITEM.fullmatch(item)
++        match = _SINGLE.fullmatch(item)
++        if match is not None:
++            values.add(int(match.group(1)))
++            continue
++        match = _RANGE.fullmatch(item)
+         if match is None:
+             raise ValueError(f"malformed item {item!r}")
+         first = int(match.group(1))
+-        last = first if match.group(2) is None else int(match.group(2))
++        last = int(match.group(2))
++        if last < first:
++            raise ValueError(f"descending range {item!r}")
+         values.update(range(first, last + 1))
+     return sorted(values)

@@ -1,0 +1,68 @@
+diff --git a/solution.py b/solution.py
+index 7021f49f3df24d034e979383d41c3fbf57fdc15b..b9f8accb536d920898bc89fa087a9665a91787bc 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,17 +1,56 @@
+ """Exact half-even rounding of decimal strings."""
+ 
+ import re
+-from decimal import ROUND_HALF_UP, Decimal, localcontext
+ 
+-_NUMBER = re.compile(r"[-+]?[0-9]+(?:\.[0-9]+)?")
++_NUMBER = re.compile(r"(-?)([0-9]+)(?:\.([0-9]+))?")
++_EVEN_DIGITS = frozenset("02468")
++
++
++def _increment(digits: list) -> list:
++    """Add one to a list of decimal digits (no leading zeros assumed)."""
++    index = len(digits) - 1
++    while index >= 0:
++        if digits[index] == "9":
++            digits[index] = "0"
++            index -= 1
++        else:
++            digits[index] = chr(ord(digits[index]) + 1)
++            return digits
++    return ["1"] + digits
+ 
+ 
+ def round_decimal(text: str, places: int) -> str:
+     if places < 0:
+         raise ValueError("places must not be negative")
+-    if not isinstance(text, str) or _NUMBER.fullmatch(text) is None:
++    match = _NUMBER.fullmatch(text) if isinstance(text, str) else None
++    if match is None:
+         raise ValueError(f"malformed number {text!r}")
+-    with localcontext() as context:
+-        value = Decimal(text).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+-    rendered = format(value, "f")
+-    return rendered
++    sign, whole, fraction = match.group(1), match.group(2), match.group(3) or ""
++
++    digits = whole + fraction
++    remaining = len(fraction) - places
++    if remaining <= 0:
++        # Nothing is discarded: only pad with zeros.
++        scaled = digits + "0" * -remaining
++    else:
++        kept = list(digits[: len(digits) - remaining])
++        discarded = digits[len(digits) - remaining :]
++        if discarded > "5" + "0" * (len(discarded) - 1):
++            scaled = "".join(_increment(kept))
++        elif discarded == "5" + "0" * (len(discarded) - 1):
++            # Exact tie: round to even.
++            scaled = "".join(_increment(kept) if kept[-1] not in _EVEN_DIGITS else kept)
++        else:
++            scaled = "".join(kept)
++
++    stripped = scaled.lstrip("0")
++    if not stripped:
++        # The rounded value is zero: no minus sign, single zero, exact places.
++        return "0" + ("." + "0" * places if places else "")
++
++    padded = stripped.rjust(places + 1, "0") if places else stripped
++    if places:
++        rendered = padded[:-places] + "." + padded[-places:]
++    else:
++        rendered = padded
++    return sign + rendered

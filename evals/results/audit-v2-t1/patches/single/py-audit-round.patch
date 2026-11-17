@@ -1,0 +1,150 @@
+diff --git a/_check.py b/_check.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..bc71700c3a0f6d221fbb928eed9c4d56ac2b851d
+--- /dev/null
++++ b/_check.py
+@@ -0,0 +1,69 @@
++import random
++import re
++from decimal import Decimal, ROUND_HALF_EVEN, localcontext
++
++from solution import round_decimal
++
++cases = [
++    ("2.5", 0, "2"),
++    ("3.5", 0, "4"),
++    ("-2.5", 0, "-2"),
++    ("0.05", 1, "0.0"),
++    ("0.15", 1, "0.2"),
++    ("1.25", 1, "1.2"),
++    ("1.35", 1, "1.4"),
++    ("999.99", 1, "1000.0"),
++    ("0", 0, "0"),
++    ("-0.0", 0, "0"),
++    ("-0.0004", 2, "0.00"),
++    ("00012.345", 2, "12.34"),
++    ("123", 2, "123.00"),
++    ("-0.5", 0, "0"),
++    ("0.5", 0, "0"),
++    ("1.5", 0, "2"),
++    ("9.99", 0, "10"),
++    ("-9.99", 0, "-10"),
++    ("0.000", 2, "0.00"),
++    ("-12.34567", 120, "-12.3456700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
++]
++for text, places, expected in cases:
++    got = round_decimal(text, places)
++    assert got == expected, (text, places, got, expected)
++
++pattern = re.compile(r"-?[0-9]+(?:\.[0-9]+)?\Z")
++random.seed(1)
++for _ in range(20000):
++    sign = "-" if random.random() < 0.5 else ""
++    integer = str(random.randint(0, 10 ** random.randint(1, 6)))
++    fraction = "".join(random.choice("0123456789") for _ in range(random.randint(1, 8)))
++    if random.random() < 0.3:
++        integer = "0" + integer
++    text = sign + integer + "." + fraction
++    places = random.randint(0, 10)
++    got = round_decimal(text, places)
++    assert pattern.fullmatch(got), (text, places, got)
++    with localcontext() as context:
++        context.prec = 200
++        quantum = Decimal(1).scaleb(-places)
++        want = format(Decimal(text).quantize(quantum, rounding=ROUND_HALF_EVEN), "f")
++    if want.startswith("-") and Decimal(want) == 0:
++        want = want[1:]
++    assert got == want, (text, places, got, want)
++
++for bad in ["", "+1", ".5", "5.", "1e3", "1,5", " 1", "1 ", "--1", "-", "-.5", "1.2.3", "0x10", "\n1"]:
++    try:
++        round_decimal(bad, 0)
++    except ValueError:
++        pass
++    else:
++        raise AssertionError("no ValueError for %r" % (bad,))
++
++for places in (-1, -5):
++    try:
++        round_decimal("1.5", places)
++    except ValueError:
++        pass
++    else:
++        raise AssertionError("no ValueError for places=%d" % places)
++
++print("all checks passed")
+diff --git a/solution.py b/solution.py
+index 7021f49f3df24d034e979383d41c3fbf57fdc15b..7546537a7183b8c5600e7234830bbd80ce200a19 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,17 +1,64 @@
+ """Exact half-even rounding of decimal strings."""
+ 
+ import re
+-from decimal import ROUND_HALF_UP, Decimal, localcontext
+ 
+-_NUMBER = re.compile(r"[-+]?[0-9]+(?:\.[0-9]+)?")
++_NUMBER = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
++
++
++def _increment(digits: str) -> str:
++    """Return the string of decimal digits incremented by one."""
++    chars = list(digits)
++    index = len(chars) - 1
++    while index >= 0:
++        if chars[index] == "9":
++            chars[index] = "0"
++            index -= 1
++        else:
++            chars[index] = chr(ord(chars[index]) + 1)
++            return "".join(chars)
++    return "1" + "".join(chars)
+ 
+ 
+ def round_decimal(text: str, places: int) -> str:
++    if isinstance(places, bool) or not isinstance(places, int):
++        raise TypeError("places must be an integer")
+     if places < 0:
+         raise ValueError("places must not be negative")
+     if not isinstance(text, str) or _NUMBER.fullmatch(text) is None:
+         raise ValueError(f"malformed number {text!r}")
+-    with localcontext() as context:
+-        value = Decimal(text).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+-    rendered = format(value, "f")
+-    return rendered
++
++    negative = text.startswith("-")
++    body = text[1:] if negative else text
++    integer_part, _, fraction_part = body.partition(".")
++
++    int_digits = integer_part
++    frac_digits = fraction_part
++
++    if places >= len(fraction_part):
++        # Nothing is discarded here, so only zero padding is required.
++        frac_digits = fraction_part + "0" * (places - len(fraction_part))
++    else:
++        digits = integer_part + fraction_part
++        kept_end = len(integer_part) + places
++        frac_digits = digits[len(integer_part):kept_end]
++        discarded = digits[kept_end:]
++        if discarded[0] > "5":
++            round_up = True
++        elif discarded[0] < "5":
++            round_up = False
++        else:
++            # Exactly half (or more): round half to even.
++            round_up = discarded[1:].strip("0") != "" or digits[kept_end - 1] in "13579"
++        if round_up:
++            combined = _increment(int_digits + frac_digits)
++            if places == 0:
++                int_digits, frac_digits = combined, ""
++            else:
++                int_digits, frac_digits = combined[:-places], combined[-places:]
++
++    int_digits = int_digits.lstrip("0") or "0"
++    is_zero = int_digits == "0" and frac_digits.strip("0") == ""
++    sign = "-" if negative and not is_zero else ""
++    if places == 0:
++        return sign + int_digits
++    return sign + int_digits + "." + frac_digits

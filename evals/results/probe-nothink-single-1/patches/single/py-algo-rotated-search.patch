@@ -1,0 +1,27 @@
+diff --git a/solution.py b/solution.py
+index 25f0e6314e2b74503ed8541eaacc07f5b3568fbf..f1a042f28d516d85ad396311b6e4d141395d9e95 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,21 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def search(values: list, target: int) -> int:
+-    raise NotImplementedError
++    lo, hi = 0, len(values) - 1
++    while lo <= hi:
++        mid = (lo + hi) // 2
++        if values[mid] == target:
++            return mid
++        # Left half is sorted normally.
++        if values[lo] <= values[mid]:
++            if values[lo] <= target < values[mid]:
++                hi = mid - 1
++            else:
++                lo = mid + 1
++        # Right half is sorted normally.
++        else:
++            if values[mid] < target <= values[hi]:
++                lo = mid + 1
++            else:
++                hi = mid - 1
++    return -1
+ 

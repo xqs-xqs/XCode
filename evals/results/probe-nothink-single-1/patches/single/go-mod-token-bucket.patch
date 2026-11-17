@@ -1,0 +1,68 @@
+diff --git a/solution.go b/solution.go
+index 0081ab6cf9a4f2ff4f8ee2a69701fac9fea93423..2a0bdbdaa6b7a2232cae95f9710abd8d93437881 100644
+--- a/solution.go
++++ b/solution.go
+@@ -7,19 +7,60 @@ var ErrParameter = errors.New("invalid token bucket parameter")
+ 
+ // TokenBucket refills at rate tokens per second, up to capacity, using clock.
+ type TokenBucket struct {
++	rate     float64
++	capacity float64
++	tokens   float64
++	last     float64
++	clock    func() float64
+ }
+ 
+ // NewTokenBucket builds a bucket that starts full.
+ func NewTokenBucket(rate float64, capacity int, clock func() float64) (*TokenBucket, error) {
+-	panic("not implemented")
++	if rate <= 0 || capacity <= 0 {
++		return nil, ErrParameter
++	}
++	if clock == nil {
++		return nil, ErrParameter
++	}
++	return &TokenBucket{
++		rate:     rate,
++		capacity: float64(capacity),
++		tokens:   float64(capacity),
++		last:     clock(),
++		clock:    clock,
++	}, nil
+ }
+ 
+ // Allow removes count tokens and reports whether they were available.
+ func (b *TokenBucket) Allow(count int) (bool, error) {
+-	panic("not implemented")
++	if count < 1 {
++		return false, ErrParameter
++	}
++	b.refill()
++	want := float64(count)
++	if b.tokens < want {
++		return false, nil
++	}
++	b.tokens -= want
++	return true, nil
+ }
+ 
+ // Tokens reports the current token level.
+ func (b *TokenBucket) Tokens() float64 {
+-	panic("not implemented")
++	b.refill()
++	return b.tokens
++}
++
++// refill adds the tokens accrued since the last observation, capped at capacity.
++func (b *TokenBucket) refill() {
++	now := b.clock()
++	elapsed := now - b.last
++	if elapsed <= 0 {
++		return
++	}
++	b.last = now
++	b.tokens += elapsed * b.rate
++	if b.tokens > b.capacity {
++		b.tokens = b.capacity
++	}
+ }

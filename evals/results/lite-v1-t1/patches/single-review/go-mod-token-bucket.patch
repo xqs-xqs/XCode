@@ -1,0 +1,87 @@
+diff --git a/solution.go b/solution.go
+index 0081ab6cf9a4f2ff4f8ee2a69701fac9fea93423..099ece2e3d31a6d6f9104c24807317c1c97affaa 100644
+--- a/solution.go
++++ b/solution.go
+@@ -1,25 +1,78 @@
+ package solution
+ 
+-import "errors"
++import (
++	"errors"
++	"sync"
++	"time"
++)
+ 
+ // ErrParameter is returned for a non-positive rate, capacity or request count.
+ var ErrParameter = errors.New("invalid token bucket parameter")
+ 
+ // TokenBucket refills at rate tokens per second, up to capacity, using clock.
+ type TokenBucket struct {
++	mu       sync.Mutex
++	rate     float64
++	capacity float64
++	clock    func() float64
++	tokens   float64
++	last     float64
+ }
+ 
+ // NewTokenBucket builds a bucket that starts full.
+ func NewTokenBucket(rate float64, capacity int, clock func() float64) (*TokenBucket, error) {
+-	panic("not implemented")
++	if rate <= 0 || capacity <= 0 {
++		return nil, ErrParameter
++	}
++	if clock == nil {
++		clock = func() float64 { return float64(time.Now().UnixNano()) / 1e9 }
++	}
++	return &TokenBucket{
++		rate:     rate,
++		capacity: float64(capacity),
++		clock:    clock,
++		tokens:   float64(capacity),
++		last:     clock(),
++	}, nil
+ }
+ 
+ // Allow removes count tokens and reports whether they were available.
+ func (b *TokenBucket) Allow(count int) (bool, error) {
+-	panic("not implemented")
++	if count < 1 {
++		return false, ErrParameter
++	}
++
++	b.mu.Lock()
++	defer b.mu.Unlock()
++
++	b.refill()
++	if b.tokens < float64(count) {
++		return false, nil
++	}
++	b.tokens -= float64(count)
++	return true, nil
+ }
+ 
+ // Tokens reports the current token level.
+ func (b *TokenBucket) Tokens() float64 {
+-	panic("not implemented")
++	b.mu.Lock()
++	defer b.mu.Unlock()
++
++	b.refill()
++	return b.tokens
++}
++
++// refill adds tokens for the time elapsed since the last observation, capped at
++// capacity. It must be called with b.mu held.
++func (b *TokenBucket) refill() {
++	now := b.clock()
++	elapsed := now - b.last
++	if elapsed <= 0 {
++		return
++	}
++	b.last = now
++	b.tokens += elapsed * b.rate
++	if b.tokens > b.capacity {
++		b.tokens = b.capacity
++	}
+ }

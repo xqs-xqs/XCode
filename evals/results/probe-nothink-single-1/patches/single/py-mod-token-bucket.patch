@@ -1,0 +1,55 @@
+diff --git a/solution.py b/solution.py
+index 63cf4e81c82dbf526d3c7b24b19ed03ed8b7e3f4..bd45c10c9f19b4302d644999925b5abadcf63be3 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,49 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++
++
+ class TokenBucket:
+-    pass
++    """A token bucket that refills from an injected monotonic clock.
++
++    The bucket starts full.  Tokens accumulate at ``rate`` tokens per second,
++    capped at ``capacity``.  Time only advances when the bucket is consulted,
++    so refilling is computed lazily from the elapsed clock time.
++    """
++
++    def __init__(self, rate, capacity, clock):
++        if rate <= 0:
++            raise ValueError("rate must be positive")
++        if capacity <= 0:
++            raise ValueError("capacity must be positive")
++        if not callable(clock):
++            raise TypeError("clock must be callable")
++
++        self.rate = rate
++        self.capacity = capacity
++        self._clock = clock
++        self._tokens = capacity
++        self._last = clock()
++
++    def _refill(self):
++        now = self._clock()
++        elapsed = now - self._last
++        if elapsed > 0:
++            self._tokens = min(self.capacity, self._tokens + elapsed * self.rate)
++            self._last = now
++        elif elapsed < 0:
++            # Clock moved backwards: keep the level but resynchronise so that
++            # the bucket does not accumulate credit for time it never saw.
++            self._last = now
++        return self._tokens
++
++    def allow(self, count):
++        if count < 1:
++            raise ValueError("count must be at least one")
++        if self._refill() >= count:
++            self._tokens -= count
++            return True
++        return False
++
++    def tokens(self):
++        return self._refill()
++
+ 

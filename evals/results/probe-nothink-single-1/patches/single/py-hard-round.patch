@@ -1,0 +1,79 @@
+diff --git a/solution.py b/solution.py
+index 880ff28a69cf0c7317f4730765188b5ff26248f9..0e2f371b9212c869197e4566070ef13c2fd40583 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,73 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++import re
++
++_DECIMAL_RE = re.compile(r"\A(-?)([0-9]+)(?:\.([0-9]+))?\Z")
++
++
+ def round_decimal(text: str, places: int) -> str:
+-    raise NotImplementedError
++    if not isinstance(places, int) or isinstance(places, bool):
++        raise TypeError("places must be an int")
++    if places < 0:
++        raise ValueError("places must be non-negative")
++    if not isinstance(text, str):
++        raise ValueError("text must be a string")
++
++    match = _DECIMAL_RE.match(text)
++    if match is None:
++        raise ValueError("malformed decimal: %r" % (text,))
++
++    negative = match.group(1) == "-"
++    int_part = match.group(2)
++    frac_part = match.group(3) or ""
++
++    digits = int_part + frac_part
++    cut = len(int_part) + places
++    if len(digits) <= cut:
++        digits = digits.ljust(cut, "0")
++        tail = ""
++    else:
++        tail = digits[cut:]
++        digits = digits[:cut]
++
++    round_up = False
++    if tail:
++        first = tail[0]
++        if first > "5":
++            round_up = True
++        elif first == "5":
++            if tail[1:].lstrip("0"):
++                round_up = True
++            else:
++                # exact tie: round half to even, using the last kept digit
++                round_up = (ord(digits[-1]) - 48) % 2 == 1
++
++    if round_up:
++        digits = _increment(digits)
++
++    if places:
++        int_out = digits[:-places]
++        frac_out = digits[-places:]
++    else:
++        int_out = digits
++        frac_out = ""
++
++    int_out = int_out.lstrip("0") or "0"
++    rendered = int_out + "." + frac_out if places else int_out
++
++    if not int_out.strip("0") and not frac_out.strip("0"):
++        negative = False
++    return ("-" if negative else "") + rendered
++
++
++def _increment(digits: str) -> str:
++    """Add one to a non-empty string of ASCII digits (result may be longer)."""
++    out = list(digits)
++    i = len(out) - 1
++    while i >= 0:
++        if out[i] != "9":
++            out[i] = chr(ord(out[i]) + 1)
++            return "".join(out)
++        out[i] = "0"
++        i -= 1
++    return "1" + "".join(out)
+ 

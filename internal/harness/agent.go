@@ -14,6 +14,13 @@ import (
 // 包级变量，Err开头导出变量，调用方可以用errors.Is判断错误种类
 var ErrMaxSteps = errors.New("maximum agent steps reached")
 
+// maxIncompleteRetries bounds how many unusable model responses in a row an
+// agent may recover from before the run fails.
+const maxIncompleteRetries = 2
+
+// stepLimitNotice accompanies the last step of an agent, when tools are withheld.
+const stepLimitNotice = "[step limit] This is your last step and tools are no longer available. Do not request a tool. Reply with your final report now: what you changed, which commands you actually ran and their results, and what remains unfinished or unverified."
+
 // Agent结构体：模型、工具注册表、运行上限和事件输出端
 type Agent struct {
 	model         Model      // 类型是接口
@@ -111,6 +118,7 @@ func (a *Agent) RunTurn(ctx context.Context, messages []Message, options RunOpti
 	}
 	a.emit(Event{Kind: RunStarted, Data: lastInput})
 	var totalUsage Usage
+	incompleteRetries := 0
 	lastHandoffEdit := -1
 	workerCorrectionUsed := false
 	workerCorrectionPending := false
@@ -213,10 +221,29 @@ func (a *Agent) RunTurn(ctx context.Context, messages []Message, options RunOpti
 		} else if options.FinalTextCheck == nil {
 			tools = advertisedTools(a.runner.Specs(), options.Orchestrate)
 		}
+		// Last step: a tool call made now could never be read, and running out
+		// of steps used to discard everything the agent had done. Withhold the
+		// tools so the agent ends with a report of what it changed and verified.
+		stepLimitFinal := step == maxSteps && maxSteps > 1 && len(tools) > 0 && submission == nil
+		if stepLimitFinal {
+			tools = nil
+			modelInput = append(append(make([]Message, 0, len(modelInput)+1), modelInput...),
+				Message{Role: "user", Content: stepLimitNotice})
+		}
 		response, err := a.model.Generate(modelContext, modelInput, tools, modelSink)
-		if textOnlyCorrection && len(response.ToolCalls) > 0 {
+		if (textOnlyCorrection || stepLimitFinal) && len(response.ToolCalls) > 0 {
 			response.ToolCalls = nil
 			response.WithheldToolCalls = true
+		}
+		if err == nil && stepLimitFinal && strings.TrimSpace(response.Content) == "" {
+			// No report came back: keep the old outcome for this case.
+			totalUsage.InputTokens += response.Usage.InputTokens
+			totalUsage.OutputTokens += response.Usage.OutputTokens
+			totalUsage.TotalTokens += response.Usage.TotalTokens
+			break
+		}
+		if err == nil {
+			incompleteRetries = 0
 		}
 		if err != nil {
 			totalUsage.InputTokens += response.Usage.InputTokens
@@ -233,6 +260,11 @@ func (a *Agent) RunTurn(ctx context.Context, messages []Message, options RunOpti
 					continue
 				case options.FinalTextCheck != nil:
 					messages = append(messages, Message{Role: "user", Content: "The previous response was incomplete. Return only a valid final verdict, with no tool calls."})
+					continue
+				case options.WorkerHandoff == nil && submission == nil && incompleteRetries < maxIncompleteRetries:
+					// One unusable response should cost a step, not the run.
+					incompleteRetries++
+					messages = append(messages, Message{Role: "user", Content: "Your previous response could not be used: a tool call had arguments that were not valid JSON, or the response was cut off. No tool from it ran. Send the call again with valid JSON arguments. Keep each string argument valid JSON (write a newline as \\n), and prefer several small edits to one very large one."})
 					continue
 				}
 			}

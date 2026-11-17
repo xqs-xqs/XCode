@@ -152,7 +152,7 @@ func (x *Executor) Execute(ctx context.Context, call harness.ToolCall) (harness.
 		if x.approver == nil {
 			x.emit(harness.Event{Kind: harness.ApprovalResolved, Tool: call.Name, ToolCallID: call.ID, Data: string(ApprovalDenied)})
 			x.record(call.ID, call.Name, StateDenied, "approval unavailable")
-			return harness.ToolResult{}, fmt.Errorf("%s requires interactive approval but no approver is available", call.Name)
+			return harness.ToolResult{}, fmt.Errorf("%s requires interactive approval but no approver is available in this unattended run, so this command cannot run. Do not retry it or a variant of it; use a pre-approved command or continue without it", call.Name)
 		}
 		scope, err := x.approver.Approve(ctx, request)
 		if err != nil {

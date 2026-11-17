@@ -1,0 +1,51 @@
+diff --git a/solution.py b/solution.py
+index b4753300334b44208471942e37907f0f01dca89c..97ed634f83aac5ff6c14fe186a4e9025c65dba91 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,45 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
+ def wrap(text: str, width: int) -> list:
+-    raise NotImplementedError
++    if width < 1:
++        raise ValueError("width must be at least 1")
++
++    # Group non-blank lines into paragraphs; blank lines separate paragraphs.
++    paragraphs = []
++    current_words = []
++    for line in text.split("\n"):
++        words = line.split()
++        if words:
++            current_words.extend(words)
++        elif current_words:
++            paragraphs.append(current_words)
++            current_words = []
++    if current_words:
++        paragraphs.append(current_words)
++
++    result = []
++    for words in paragraphs:
++        if result:
++            result.append("")
++        lines = []
++        current = ""
++        for word in words:
++            if len(word) > width:
++                if current:
++                    lines.append(current)
++                    current = ""
++                chunks = [word[i:i + width] for i in range(0, len(word), width)]
++                lines.extend(chunks[:-1])
++                current = chunks[-1]
++            elif not current:
++                current = word
++            elif len(current) + 1 + len(word) <= width:
++                current += " " + word
++            else:
++                lines.append(current)
++                current = word
++        if current:
++            lines.append(current)
++        result.extend(lines)
++
++    return result
+ 

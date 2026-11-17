@@ -1,0 +1,131 @@
+diff --git a/_check_hidden.py b/_check_hidden.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4cef5a50c0d4116d9367ee13865e82fcb1780243
+--- /dev/null
++++ b/_check_hidden.py
+@@ -0,0 +1,75 @@
++import unittest
++
++from solution import TTLCache
++
++
++class TestHiddenBehaviour(unittest.TestCase):
++    def test_lru_and_capacity(self):
++        t = [0.0]
++        c = TTLCache(2, 10, lambda: t[0])
++        c.set('a', 1)
++        c.set('b', 2)
++        c.get('a')
++        c.set('c', 3)
++        self.assertEqual(c.get('b', 'MISS'), 'MISS')
++        self.assertEqual(c.get('a'), 1)
++        self.assertEqual(c.get('c'), 3)
++
++    def test_len_and_expiry(self):
++        t = [0.0]
++        c = TTLCache(2, 10, lambda: t[0])
++        c.set('a', 1)
++        c.set('b', 2)
++        self.assertEqual(len(c), 2)
++        t[0] = 10
++        self.assertEqual(len(c), 0)
++        self.assertIsNone(c.get('a'))
++        c.set('d', 4)
++        self.assertEqual(len(c), 1)
++        t[0] = 19
++        self.assertEqual(len(c), 1)
++        t[0] = 20
++        self.assertEqual(len(c), 0)
++
++    def test_invalid_arguments(self):
++        for cap, ttl in ((0, 10), (-1, 10), (2, 0), (2, -1)):
++            with self.assertRaises(ValueError):
++                TTLCache(cap, ttl, lambda: 0.0)
++
++    def test_falsy_values(self):
++        c = TTLCache(2, 10, lambda: 0.0)
++        c.set('n', None)
++        c.set('z', 0)
++        self.assertIsNone(c.get('n', 7))
++        self.assertEqual(c.get('z', 7), 0)
++
++    def test_reset_refreshes_ttl_and_recency(self):
++        t = [0.0]
++        c = TTLCache(2, 10, lambda: t[0])
++        c.set('a', 1)
++        c.set('b', 2)
++        t[0] = 5
++        c.set('a', 11)
++        c.set('c', 3)
++        self.assertEqual(c.get('b', 'MISS'), 'MISS')
++        self.assertEqual(c.get('a'), 11)
++        t[0] = 14
++        self.assertEqual(len(c), 1)
++        self.assertIsNone(c.get('a'))
++        self.assertEqual(c.get('c'), 3)
++
++    def test_expired_entries_do_not_consume_capacity(self):
++        t = [0.0]
++        c = TTLCache(2, 10, lambda: t[0])
++        c.set('a', 1)
++        t[0] = 5
++        c.set('b', 2)
++        t[0] = 10  # 'a' expired, 'b' live
++        c.set('c', 3)
++        self.assertIsNone(c.get('a'))
++        self.assertEqual(c.get('b'), 2)
++        self.assertEqual(c.get('c'), 3)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/solution.py b/solution.py
+index be59bfade6447c878deb0e54ea274bfa50fd453e..d8ef02e8686a60afdeb7a2cc7146efcc0ea8ae94 100644
+--- a/solution.py
++++ b/solution.py
+@@ -1,4 +1,44 @@
+ """Implement the functions declared below; keep the signatures unchanged."""
++from collections import OrderedDict
++
++
+ class TTLCache:
+-    pass
++    """LRU cache whose entries also expire after a fixed ttl."""
++
++    def __init__(self, capacity, ttl, clock):
++        if capacity <= 0:
++            raise ValueError("capacity must be positive")
++        if ttl <= 0:
++            raise ValueError("ttl must be positive")
++        self._capacity = capacity
++        self._ttl = ttl
++        self._clock = clock
++        self._data = OrderedDict()
++
++    def _purge_expired(self, now):
++        for key, (_, expires_at) in list(self._data.items()):
++            if now >= expires_at:
++                del self._data[key]
++
++    def set(self, key, value):
++        now = self._clock()
++        self._purge_expired(now)
++        self._data[key] = (value, now + self._ttl)
++        self._data.move_to_end(key)
++        while len(self._data) > self._capacity:
++            self._data.popitem(last=False)
++
++    def get(self, key, default=None):
++        if key not in self._data:
++            return default
++        value, expires_at = self._data[key]
++        if self._clock() >= expires_at:
++            del self._data[key]
++            return default
++        self._data.move_to_end(key)
++        return value
++
++    def __len__(self):
++        now = self._clock()
++        return sum(1 for _, expires_at in self._data.values() if now < expires_at)
+ 
