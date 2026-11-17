@@ -106,7 +106,7 @@ shadow 指的是分类结果只记录、不生效——真实压缩仍走规则�
 bin/xcode.exe --workspace D:/path/to/repo "修复登录超时的 bug，改完跑通 go test"
 ```
 
-运行中会实时显示每一步：读了哪些文件、执行了什么命令、策略判定和审批；结束后打印停止原因和本次 token 用量。
+运行中会实时显示每一步：读了哪些文件、执行了什么命令、策略判定和审批。子智能体的启动和返回显示为 `[agent] sub-N <角色> spawned / returned`，它自己的步骤缩进并标注 `[sub-N <角色>]`。结束后打印停止原因和本次 token 用量。
 
 ### 交互模式（多轮对话）
 
@@ -168,6 +168,8 @@ bin/xcode.exe --contract task.json "修复 utils.go 里的越界问题"
 新的外部评测入口和分阶段实施说明见 [evals/README.md](evals/README.md)。它运行真实 CLI，保存失败结果，统一计算主/子 agent 和摘要的模型预算，并提供 Harbor 适配和完整 patch 导出。
 
 到目前为止每一轮的判定结果汇总在 [evals/EVAL_RESULTS.md](evals/EVAL_RESULTS.md)：逐题判定、各实验臂使用的二进制、以及每项对照的已知局限。这些数字背后的原始轨迹、补丁和判分输出已作为 Release 附件发布。
+
+另有两条不需要 Docker 的评测线：[evals/lite/](evals/lite/README.md) 在本机跑小任务、由隐藏测试判分；`evals/swe_native/` 在本机给 SWE-bench Verified 的 sympy 题判分。两者的结果导出在 [evals/results/](evals/results/README.md)。目前跑过的每一组题上，单智能体、单智能体加审查和流水线解出的题数基本相同，差别在 token 花费。
 
 下面的 `xcode eval` 是内部小任务回归，不能据此宣称真实仓库能力或企业级可靠性。demo 模型只用于检查链路。
 
